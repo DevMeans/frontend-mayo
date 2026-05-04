@@ -11,5 +11,13 @@ export class CategoryAdminPageComponent implements OnInit {
 
   ngOnInit() {
   }
+  openModal() {
+    console.log('Opening modal');
+    const modal = document.getElementById('category-modal') as HTMLInputElement;
+    if (modal) {
+      modal.checked = true;
+    }
+  }
+
 
 }
