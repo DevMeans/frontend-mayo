@@ -1,11 +1,30 @@
 <dialog id="category-modal" class="modal" #categorymodal>
   <div class="modal-box">
-    <h3 class="text-lg font-bold">Hello!</h3>
-    <p class="py-4">Press ESC key or click the button below to close</p>
+    <h3 class="text-lg font-bold">Hola!</h3>
+    <p class="py-4">Crear nueva categoría</p>
     <div class="modal-action">
-      <form method="dialog">
-        <!-- if there is a button in form, it will close the modal -->
-        <button class="btn">Close</button>
+      <form method="dialog" class="w-full">
+        <div class="flex flex-col gap-5 w-full">
+          <label class="input w-full">
+            <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <g
+                stroke-linejoin="round"
+                stroke-linecap="round"
+                stroke-width="2.5"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+              </g>
+            </svg>
+            <input type="text" class="grow" placeholder="Nombre de la categoría" />
+          </label>
+          <div class="flex justify-end gap-2">
+            <button class="btn btn-ghost">Cancelar</button>
+            <button class="btn btn-primary">Crear</button>
+          </div>
+        </div>
       </form>
     </div>
   </div>
