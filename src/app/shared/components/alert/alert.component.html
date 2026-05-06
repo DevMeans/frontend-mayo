@@ -1,0 +1,10 @@
+<div class="fixed top-4 right-4 md:top-6 md:right-6 z-50 flex flex-col gap-3 pointer-events-none max-w-sm md:max-w-md">
+  @for (alert of alerts$ | async; track alert.id) {
+    <div class="pointer-events-auto animate-slide-in">
+      <div [class]="getAlertClasses(alert.type)">
+        <span class="text-lg">{{ getIcon(alert.type) }}</span>
+        <span class="text-sm md:text-base">{{ alert.message }}</span>
+      </div>
+    </div>
+  }
+</div>

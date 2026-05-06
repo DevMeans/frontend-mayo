@@ -1,31 +1,43 @@
 <dialog id="category-modal" class="modal" #categorymodal>
-  <div class="modal-box">
-    <h3 class="text-lg font-bold">Hola!</h3>
-    <p class="py-4">Crear nueva categoría</p>
-    <div class="modal-action">
-      <form method="dialog" class="w-full">
-        <div class="flex flex-col gap-5 w-full">
-          <label class="input w-full">
-            <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <g
-                stroke-linejoin="round"
-                stroke-linecap="round"
-                stroke-width="2.5"
-                fill="none"
-                stroke="currentColor"
-              >
-                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
-                <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
-              </g>
-            </svg>
-            <input type="text" class="grow" placeholder="Nombre de la categoría" />
+  <div class="modal-box w-full max-w-sm md:max-w-md">
+    <h3 class="text-lg font-bold">Crear Nueva Categoría</h3>
+    <p class="py-2 text-sm text-gray-600">Agrega una nueva categoría a tu tienda</p>
+
+    <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()" class="py-4">
+      <div class="form-control w-full mb-4">
+        <label class="label">
+          <span class="label-text">Nombre de la Categoría</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Ingresa el nombre..."
+          class="input input-bordered w-full"
+          formControlName="name"
+        />
+        @if (submitted && categoryForm.get('name')?.invalid) {
+          <label class="label">
+            <span class="label-text-alt text-error">
+              @if (categoryForm.get('name')?.errors?.['required']) {
+                Campo requerido
+              } @else if (categoryForm.get('name')?.errors?.['minlength']) {
+                Mínimo 3 caracteres
+              }
+            </span>
           </label>
-          <div class="flex justify-end gap-2">
-            <button class="btn btn-ghost">Cancelar</button>
-            <button class="btn btn-primary">Crear</button>
-          </div>
-        </div>
-      </form>
-    </div>
+        }
+      </div>
+
+      <div class="modal-action">
+        <button type="button" class="btn btn-ghost" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          Guardar
+        </button>
+      </div>
+    </form>
   </div>
+  <form method="dialog" class="modal-backdrop">
+    <button (click)="closeModal()">cerrar</button>
+  </form>
 </dialog>
