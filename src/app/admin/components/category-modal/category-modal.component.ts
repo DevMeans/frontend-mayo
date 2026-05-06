@@ -33,40 +33,30 @@ export class CategoryModalComponent implements OnInit {
 
   saveCategory() {
     this.submitted = true;
-    if (this.categoryForm.valid) {
-      const categoryName = this.categoryForm.value.name;
-      console.log('Guardando categoría:', categoryName);
-
-      this.categoryService.createCategory(categoryName).subscribe({
-        next: (createdCategory) => {
-          console.log('Categoría creada:', createdCategory);
-          this.alertService.show(`Categoría "${categoryName}" guardada exitosamente`, 'success', 1000);
-        },
-        error: (error) => {
-          console.error('Error al crear categoría:', error);
-          this.alertService.show('Error al crear categoría', 'error', 1000);
-        }
-      });
-
-      // Aquí irían las llamadas a la API
-
-
-      // Cerrar el modal
-      const modal = document.getElementById('category-modal') as HTMLDialogElement;
-      if (modal) {
-        modal.close();
-      }
-
-      // Limpiar el formulario y resetear estado
-      this.categoryForm.reset();
-      this.categoryForm.markAsUntouched();
-      this.submitted = false;
-      Object.keys(this.categoryForm.controls).forEach(key => {
-        this.categoryForm.get(key)?.markAsUntouched();
-      });
-    } else {
-      this.alertService.show('Por favor completa el formulario correctamente', 'error', 1000);
+    if (this.categoryForm.invalid) {
+      this.categoryForm.markAllAsTouched();
+      this.alertService.show('Por favor completa el formulario correctamente', 'error', 2000);
+      return;
     }
+
+    const categoryName = this.categoryForm.value.name?.trim();
+    if (!categoryName) {
+      this.alertService.show('El nombre de la categoría no puede quedar vacío', 'error', 2000);
+      return;
+    }
+
+    console.log('Guardando categoría:', categoryName);
+    this.categoryService.createCategory(categoryName).subscribe({
+      next: (createdCategory) => {
+        console.log('Categoría creada:', createdCategory);
+        this.alertService.show(`Categoría "${categoryName}" guardada exitosamente`, 'success', 2000);
+        this.closeModal();
+      },
+      error: (error) => {
+        console.error('Error al crear categoría:', error);
+        this.alertService.show('Error al crear categoría', 'error', 2000);
+      }
+    });
   }
 
   closeModal() {
