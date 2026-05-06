@@ -8,8 +8,18 @@
       <legend class="fieldset-legend">Settings</legend>
       <div class="flex flex-row justify-between gap-5">
         <div class="join">
-          <input type="text" class="input join-item" placeholder="Product name" />
-          <button class="btn join-item btn-primary">buscar</button>
+          <input type="text" class="input join-item" placeholder="Product name" (keyup)="obtenerCategorias(txtvalue.value)"  #txtvalue/>
+          <button class="btn join-item btn-primary" (click)="obtenerCategorias(txtvalue.value)">buscar</button>
+        </div>
+        <div class="flex items-center gap-4">
+          <label class="cursor-pointer label">
+            <span class="label-text">Activos</span>
+            <input type="checkbox" class="checkbox ml-2" [checked]="activeChecked()" (change)="setActiveChecked($event.target.checked)" />
+          </label>
+          <label class="cursor-pointer label">
+            <span class="label-text">Inactivos</span>
+            <input type="checkbox" class="checkbox ml-2" [checked]="inactiveChecked()" (change)="setInactiveChecked($event.target.checked)" />
+          </label>
         </div>
         <div>
           <button class="btn btn-primary" (click)="openModal()">Agregar</button>
