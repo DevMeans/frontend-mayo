@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AlertService } from '../../../shared/services/alert.service';
+import { CategoryService } from '../../../category/services/Category.service';
 
 @Component({
   selector: 'app-category-modal',
@@ -15,10 +16,12 @@ export class CategoryModalComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private alertService: AlertService
-  ) {}
+    private alertService: AlertService,
+    private categoryService: CategoryService
+  ) { }
 
   ngOnInit() {
+    console.log('CategoryModalComponent initialized');
     this.initializeForm();
   }
 
@@ -34,8 +37,19 @@ export class CategoryModalComponent implements OnInit {
       const categoryName = this.categoryForm.value.name;
       console.log('Guardando categoría:', categoryName);
 
+      this.categoryService.createCategory(categoryName).subscribe({
+        next: (createdCategory) => {
+          console.log('Categoría creada:', createdCategory);
+          this.alertService.show(`Categoría "${categoryName}" guardada exitosamente`, 'success', 1000);
+        },
+        error: (error) => {
+          console.error('Error al crear categoría:', error);
+          this.alertService.show('Error al crear categoría', 'error', 1000);
+        }
+      });
+
       // Aquí irían las llamadas a la API
-      this.alertService.show(`Categoría "${categoryName}" guardada exitosamente`, 'success', 1000);
+
 
       // Cerrar el modal
       const modal = document.getElementById('category-modal') as HTMLDialogElement;
