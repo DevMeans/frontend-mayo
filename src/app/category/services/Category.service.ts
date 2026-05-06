@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Category, CategoryResponse } from '../interfaces/category.interface';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable, catchError, throwError, tap } from 'rxjs';
 const baseurl = environment.apiUrl;
 interface OptionsCategory {
   skip: number;
@@ -20,21 +20,21 @@ export class CategoryService {
   getCategories(options: OptionsCategory): Observable<CategoryResponse> {
     const url = `${baseurl}/categorie?skip=${options.skip}&take=${options.take}`;
     return this.http.get<CategoryResponse>(url).pipe(
+      tap(response => console.log('Categorías obtenidas:', response)),
       catchError(error => {
-        console.error('Error en getCategories:', error);
-        let userMessage = 'Error desconocido';
-        if (error.status === 400) {
-          userMessage = error.error?.message || 'Datos inválidos';
-        } else if (error.status === 500) {
-          userMessage = 'Error interno del servidor. Intente nuevamente más tarde.';
-        }
-        const customError = { ...error, userMessage };
-        return throwError(customError);
+        console.error('Error al obtener categorías:', error);
+        return throwError(() => error);
       })
     );
   }
   createCategory(name:string): Observable<Category> {
     const url = `${baseurl}/categorie`;
-    return this.http.post<Category>(url,{name})
+    return this.http.post<Category>(url,{name}).pipe(
+      tap(response => console.log('Categoría creada:', response)),
+      catchError(error => {
+        console.error('Error al crear categoría:', error);
+        return throwError(() => new Error('Error al crear categoría'));
+      })
+    );
   }
 }

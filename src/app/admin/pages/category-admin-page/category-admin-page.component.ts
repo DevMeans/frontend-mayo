@@ -28,7 +28,10 @@ export class CategoryAdminPageComponent implements OnInit {
   }
   productResource = rxResource({
     params: () => ({}),
-    stream: () => this.categoryService.getCategories({ skip: 1, take: 10 })
+    stream: () => {
+      console.log('Ejecutando rxResource stream');
+      return this.categoryService.getCategories({ skip: 1, take: 10 });
+    }
   })
 
   openModal() {
@@ -38,23 +41,19 @@ export class CategoryAdminPageComponent implements OnInit {
       modal.showModal();
     }
   }
+
   get errorMessage(): string {
-
-    const error = this.productResource.error() as HttpErrorResponse;
-
+    const error = this.productResource.error();
     if (!error) return '';
+    const httpError = error as HttpErrorResponse;
 
-    switch (error.status) {
-
-      case 400:
-        return error.error?.message || 'Solicitud inválida';
-
-      case 500:
-        return 'Error interno del servidor';
-
-      default:
-        return 'Error inesperado';
+    if (httpError.status === 400) {
+      return httpError.error?.message || httpError.message || 'Solicitud inválida';
     }
+    if (httpError.status === 500) {
+      return httpError.error?.message || 'Error interno del servidor';
+    }
+    return httpError.error?.message || httpError.message || 'Error desconocido';
   }
 
 }

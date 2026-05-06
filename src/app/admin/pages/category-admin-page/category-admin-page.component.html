@@ -26,22 +26,26 @@
           <th>Name</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- row 1 -->
-        @for (item of productResource.value()?.data; track $index) {
-          <tr>
-            <th>1</th>
-            <td>{{ item.name }}</td>
-          </tr>
-          <!-- row 2 -->
-        }
-      </tbody>
+      @if (!productResource.error()) {
+        <tbody>
+          <!-- row 1 -->
+          @for (item of productResource.value()?.data; track $index) {
+            <tr>
+              <th>1</th>
+              <td>{{ item.name }}</td>
+            </tr>
+            <!-- row 2 -->
+          }
+        </tbody>
+      }
     </table>
   </div>
+
   @if (productResource.error()) {
     <div class="alert alert-error">
       <span>{{ errorMessage }}</span>
     </div>
   }
+
   <app-category-modal></app-category-modal>
 </div>
