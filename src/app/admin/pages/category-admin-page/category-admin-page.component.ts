@@ -73,12 +73,10 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
 
   setActiveChecked(value: boolean) {
     this.activeChecked.set(value);
-    this.productResource.reload();
   }
 
   setInactiveChecked(value: boolean) {
     this.inactiveChecked.set(value);
-    this.productResource.reload();
   }
 
   obtenerCategorias(param: string) {
