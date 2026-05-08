@@ -1,6 +1,6 @@
 @keyframes slideIn {
   from {
-    transform: translateX(400px);
+    transform: translateX(100%);
     opacity: 0;
   }
   to {
@@ -12,3 +12,12 @@
 .animate-slide-in {
   animation: slideIn 0.3s ease-out forwards;
 }
+
+.toast {
+  width: auto;
+}
+
+.alert {
+  align-items: stretch;
+}
+

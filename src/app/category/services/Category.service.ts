@@ -68,4 +68,37 @@ export class CategoryService {
     );
   }
 
+  updateCategory(id: number, name: string): Observable<Category> {
+    const url = `${baseurl}/categorie/${id}`;
+    return this.http.put<Category>(url, { name }).pipe(
+      tap(response => console.log('Categoría actualizada:', response)),
+      catchError(error => {
+        console.error('Error al actualizar categoría:', error);
+        return throwError(() => new Error('Error al actualizar categoría'));
+      })
+    );
+  }
+
+  deactivateCategory(id: number): Observable<Category> {
+    const url = `${baseurl}/categorie/${id}`;
+    return this.http.put<Category>(url, { isActive: false }).pipe(
+      tap(response => console.log('Categoría desactivada:', response)),
+      catchError(error => {
+        console.error('Error al desactivar categoría:', error);
+        return throwError(() => new Error('Error al desactivar categoría'));
+      })
+    );
+  }
+
+  activateCategory(id: number): Observable<Category> {
+    const url = `${baseurl}/categorie/${id}`;
+    return this.http.put<Category>(url, { isActive: true }).pipe(
+      tap(response => console.log('Categoría activada:', response)),
+      catchError(error => {
+        console.error('Error al activar categoría:', error);
+        return throwError(() => new Error('Error al activar categoría'));
+      })
+    );
+  }
+
 }

@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AlertService, Alert } from '../../services/alert.service';
-import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-alert',
@@ -11,28 +10,13 @@ import { Observable } from 'rxjs';
   styleUrls: ['./alert.component.css']
 })
 export class AlertComponent implements OnInit {
-  alerts$!: Observable<Alert[]>;
+  alertService: AlertService;
 
-  constructor(private alertService: AlertService) {}
-
-  ngOnInit() {
-    this.alerts$ = this.alertService.alerts$;
+  constructor(alertService: AlertService) {
+    this.alertService = alertService;
   }
 
-  getAlertClasses(type: string): string {
-    const baseClasses = 'alert gap-2 shadow-lg';
-
-    switch (type) {
-      case 'success':
-        return `${baseClasses} alert-success`;
-      case 'error':
-        return `${baseClasses} alert-error`;
-      case 'warning':
-        return `${baseClasses} alert-warning`;
-      case 'info':
-      default:
-        return `${baseClasses} alert-info`;
-    }
+  ngOnInit() {
   }
 
   getIcon(type: string): string {
@@ -47,5 +31,65 @@ export class AlertComponent implements OnInit {
       default:
         return 'ℹ';
     }
+  }
+
+  getIconColor(type: string): string {
+    switch (type) {
+      case 'success':
+        return 'text-success';
+      case 'error':
+        return 'text-error';
+      case 'warning':
+        return 'text-warning';
+      case 'info':
+      default:
+        return 'text-info';
+    }
+  }
+
+  getTitleColor(type: string): string {
+    switch (type) {
+      case 'success':
+        return 'text-success';
+      case 'error':
+        return 'text-error';
+      case 'warning':
+        return 'text-warning';
+      case 'info':
+      default:
+        return 'text-info';
+    }
+  }
+
+  getButtonClass(type: string): string {
+    switch (type) {
+      case 'success':
+        return 'btn-success';
+      case 'error':
+        return 'btn-error';
+      case 'warning':
+        return 'btn-warning';
+      case 'info':
+      default:
+        return 'btn-info';
+    }
+  }
+
+  getAlertClasses(type: string): string {
+    switch (type) {
+      case 'success':
+        return 'alert-success';
+      case 'error':
+        return 'alert-error';
+      case 'warning':
+        return 'alert-warning';
+      case 'info':
+      default:
+        return 'alert-info';
+    }
+  }
+
+  closeAlert() {
+    this.alertService.close();
   }
 }

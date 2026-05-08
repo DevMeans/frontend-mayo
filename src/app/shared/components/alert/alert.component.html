@@ -1,9 +1,28 @@
-<div class="fixed top-4 right-4 md:top-6 md:right-6 z-50 flex flex-col gap-3 pointer-events-none max-w-sm md:max-w-md">
-  @for (alert of alerts$ | async; track alert.id) {
-    <div class="pointer-events-auto animate-slide-in">
-      <div [class]="getAlertClasses(alert.type)">
-        <span class="text-lg">{{ getIcon(alert.type) }}</span>
-        <span class="text-sm md:text-base">{{ alert.message }}</span>
+<div class="fixed top-4 right-4 z-50 max-w-sm">
+  @if (alertService.currentAlert(); as alert) {
+    <div class="animate-slide-in">
+      <div [class]="'alert shadow-lg ' + getAlertClasses(alert.type)">
+        <div>
+          <span class="text-lg" [class]="getIconColor(alert.type)">{{ getIcon(alert.type) }}</span>
+          <span class="font-semibold ml-2">@switch (alert.type) {
+            @case ('success') {
+              Éxito
+            }
+            @case ('error') {
+              Error
+            }
+            @case ('warning') {
+              Advertencia
+            }
+            @case ('info') {
+              Información
+            }
+          }</span>
+          <div class="mt-2 text-sm">{{ alert.message }}</div>
+        </div>
+        <div class="flex-none">
+          <button class="btn btn-ghost btn-sm" (click)="closeAlert()">Cerrar</button>
+        </div>
       </div>
     </div>
   }

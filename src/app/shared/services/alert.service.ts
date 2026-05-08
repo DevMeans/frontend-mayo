@@ -1,5 +1,4 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
 
 export interface Alert {
   id: string;
@@ -11,27 +10,25 @@ export interface Alert {
   providedIn: 'root'
 })
 export class AlertService {
-  private alertsSubject = new BehaviorSubject<Alert[]>([]);
-  public alerts$: Observable<Alert[]> = this.alertsSubject.asObservable();
-
+  currentAlert = signal<Alert | null>(null);
   private alertCounter = 0;
 
   constructor() {}
 
-  show(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', duration: number = 1000) {
+  show(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', duration: number = 3000) {
     const id = `alert-${++this.alertCounter}`;
     const alert: Alert = { id, message, type };
 
-    const currentAlerts = this.alertsSubject.value;
-    this.alertsSubject.next([...currentAlerts, alert]);
+    this.currentAlert.set(alert);
 
-    setTimeout(() => {
-      this.remove(id);
-    }, duration);
+    if (duration > 0) {
+      setTimeout(() => {
+        this.close();
+      }, duration);
+    }
   }
 
-  private remove(id: string) {
-    const currentAlerts = this.alertsSubject.value;
-    this.alertsSubject.next(currentAlerts.filter(alert => alert.id !== id));
+  close() {
+    this.currentAlert.set(null);
   }
 }

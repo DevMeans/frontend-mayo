@@ -1,13 +1,21 @@
 <dialog id="category-modal" class="modal" #categorymodal>
   <div class="modal-box w-full max-w-sm md:max-w-md">
-    <h3 class="text-lg font-bold">Crear Nueva Categoría</h3>
-    <p class="py-2 text-sm text-gray-600">Agrega una nueva categoría a tu tienda</p>
+    @if (editingCategory()) {
+      <h3 class="text-lg font-bold">Editar Categoría</h3>
+      <p class="py-2 text-sm text-gray-600">Modifica los datos de la categoría</p>
+    } @else {
+      <h3 class="text-lg font-bold">Crear Nueva Categoría</h3>
+      <p class="py-2 text-sm text-gray-600">Agrega una nueva categoría a tu tienda</p>
+    }
 
     <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()" class="py-4">
-      <div class="form-control w-full mb-4">
+      <div class="form-control w-full mb-4 ">
         <label class="label">
           <span class="label-text">Nombre de la Categoría</span>
         </label>
+        <div class="w-full h-2">
+
+        </div>
         <input
           type="text"
           placeholder="Ingresa el nombre..."
@@ -32,7 +40,11 @@
           Cancelar
         </button>
         <button type="submit" class="btn btn-primary">
-          Guardar
+          @if (editingCategory()) {
+            Actualizar
+          } @else {
+            Guardar
+          }
         </button>
       </div>
     </form>
