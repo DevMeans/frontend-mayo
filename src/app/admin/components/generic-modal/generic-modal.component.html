@@ -1,0 +1,55 @@
+<dialog id="generic-modal" class="modal" #genericModal>
+  <div class="modal-box w-full max-w-sm md:max-w-md">
+    @if (isEditing()) {
+      <h3 class="text-lg font-bold">{{ editTitle }}</h3>
+      <p class="py-2 text-sm text-gray-600">{{ editDescription }}</p>
+    } @else {
+      <h3 class="text-lg font-bold">{{ createTitle }}</h3>
+      <p class="py-2 text-sm text-gray-600">{{ createDescription }}</p>
+    }
+
+    <form [formGroup]="itemForm" (ngSubmit)="saveItem()" class="py-4">
+      <div class="form-control w-full mb-4 ">
+        <label class="label">
+          <span class="label-text">{{ fieldLabel }}</span>
+        </label>
+        <div class="w-full h-2">
+
+        </div>
+        <input
+          type="text"
+          [placeholder]="fieldPlaceholder"
+          class="input input-bordered w-full"
+          formControlName="name"
+        />
+        @if (submitted && itemForm.get('name')?.invalid) {
+          <label class="label">
+            <span class="label-text-alt text-error">
+              @if (itemForm.get('name')?.errors?.['required']) {
+                Campo requerido
+              } @else if (itemForm.get('name')?.errors?.['minlength']) {
+                Mínimo 3 caracteres
+              }
+            </span>
+          </label>
+        }
+      </div>
+
+      <div class="modal-action">
+        <button type="button" class="btn btn-ghost" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          @if (isEditing()) {
+            Actualizar
+          } @else {
+            Guardar
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button (click)="closeModal()">cerrar</button>
+  </form>
+</dialog>

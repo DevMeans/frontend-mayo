@@ -1,9 +1,8 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ChangeDetectorRef } from '@angular/core';
-import { CategoryModalComponent } from '../../components/category-modal/category-modal.component';
+import { GenericModalComponent } from '../../components/generic-modal/generic-modal.component';
 import { CategoryService } from '../../../category/services/Category.service';
 import { Category, CategoryResponse } from '../../../category/interfaces/category.interface';
-import { rxResource, toSignal } from '@angular/core/rxjs-interop';
-import { JsonPipe } from '@angular/common';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { debounceTime, map } from 'rxjs/operators';
@@ -17,18 +16,20 @@ import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/
   templateUrl: './category-admin-page.component.html',
   styleUrls: ['./category-admin-page.component.css'],
   standalone: true,
-  imports: [CategoryModalComponent, AlertComponent, ConfirmModalComponent]
+  imports: [GenericModalComponent, AlertComponent, ConfirmModalComponent]
 })
 export class CategoryAdminPageComponent implements OnInit, OnDestroy {
 
-  @ViewChild(CategoryModalComponent) categoryModal!: CategoryModalComponent;
+  @ViewChild(GenericModalComponent) genericModal!: GenericModalComponent;
 
-  ListaCategorias = computed(() => this.productResource.value()?.data || []);
+  private categoriesData = signal<Category[]>([]);
   private searchSubject = new Subject<string>();
   private searchParam = signal<string>('');
   activeChecked = signal<boolean>(true);
   inactiveChecked = signal<boolean>(true);
   private filterParams = computed(() => ({ search: this.searchParam(), isActive: this.isActiveParam }));
+
+  ListaCategorias = computed(() => this.getFilteredCategories());
 
   private get isActiveParam(): boolean | undefined {
     const active = this.activeChecked();
@@ -38,6 +39,18 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
     return undefined;
   }
 
+  private getFilteredCategories(): Category[] {
+    const search = this.searchParam().toLowerCase();
+    const isActive = this.isActiveParam;
+    const categories = this.categoriesData();
+
+    return categories.filter(category => {
+      const matchesSearch = !search || category.name.toLowerCase().includes(search);
+      const matchesActive = isActive === undefined || category.isActive === isActive;
+      return matchesSearch && matchesActive;
+    });
+  }
+
   constructor(private categoryService: CategoryService, private alertService: AlertService, private cdr: ChangeDetectorRef, private confirmService: ConfirmService) {
 
 
@@ -45,8 +58,9 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     console.log('CategoryAdminPageComponent initialized');
-    this.searchSubject.pipe(debounceTime(1000)).subscribe(param => {
-      console.log('Obteniendo categorías con filtro:', param);
+    this.loadInitialCategories();
+    this.searchSubject.pipe(debounceTime(500)).subscribe(param => {
+      console.log('Búsqueda actualizada:', param);
       this.searchParam.set(param);
     });
   }
@@ -54,28 +68,19 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.searchSubject.unsubscribe();
   }
-  productResource = rxResource({
-    params: () => this.filterParams(),
-    stream: (params) => {
-      const rawParams = (params as any)?.params || {};
-      const search = rawParams.search?.trim();
-      const isActive = rawParams.isActive;
-      console.log('Ejecutando rxResource stream con params:', rawParams, 'search extraído:', search, 'isActive:', isActive);
 
-      if (search) {
-        console.log('Buscando por nombre:', search, 'isActive:', isActive);
-        return this.categoryService.findByName(search, isActive).pipe(
-          map(categories => {
-            console.log('Categorías encontradas:', categories);
-            return { data: categories, total: categories.length, page: 1, limit: categories.length } as CategoryResponse;
-          })
-        );
+  private loadInitialCategories() {
+    this.categoryService.getCategories({ skip: 1, take: 100 }).subscribe({
+      next: (response) => {
+        console.log('Categorías cargadas:', response.data);
+        this.categoriesData.set(response.data);
+      },
+      error: (error) => {
+        console.error('Error al cargar categorías:', error);
+        this.alertService.show('Error al cargar categorías', 'error', 2000);
       }
-
-      console.log('Listando categorías con isActive:', isActive);
-      return this.categoryService.getCategories({ skip: 1, take: 100, isActive });
-    }
-  })
+    });
+  }
 
   setActiveChecked(value: boolean) {
     this.activeChecked.set(value);
@@ -91,8 +96,8 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
   }
   openModal() {
     console.log('Opening modal');
-    this.categoryModal.setEditingCategory(null);
-    const modal = document.getElementById('category-modal') as HTMLDialogElement;
+    this.genericModal.setEditingItem(null);
+    const modal = document.getElementById('generic-modal') as HTMLDialogElement;
     if (modal) {
       modal.showModal();
     }
@@ -100,8 +105,8 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
 
   openModalForEdit(category: Category) {
     console.log('Opening modal for editing category:', category);
-    this.categoryModal.setEditingCategory(category);
-    const modal = document.getElementById('category-modal') as HTMLDialogElement;
+    this.genericModal.setEditingItem(category);
+    const modal = document.getElementById('generic-modal') as HTMLDialogElement;
     if (modal) {
       modal.showModal();
     }
@@ -123,8 +128,9 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
     this.categoryService.deactivateCategory(category.id).subscribe({
       next: (deactivatedCategory) => {
         console.log('Categoría desactivada:', deactivatedCategory);
-        // Actualizar el estado local sin recargar la lista
-        category.isActive = false;
+        this.categoriesData.update(categories =>
+          categories.map(c => c.id === category.id ? { ...c, isActive: false } : c)
+        );
         this.cdr.markForCheck();
         this.alertService.show(`Categoría "${category.name}" desactivada exitosamente`, 'success', 2000);
       },
@@ -151,8 +157,9 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
     this.categoryService.activateCategory(category.id).subscribe({
       next: (activatedCategory) => {
         console.log('Categoría activada:', activatedCategory);
-        // Actualizar el estado local sin recargar la lista
-        category.isActive = true;
+        this.categoriesData.update(categories =>
+          categories.map(c => c.id === category.id ? { ...c, isActive: true } : c)
+        );
         this.cdr.markForCheck();
         this.alertService.show(`Categoría "${category.name}" activada exitosamente`, 'success', 2000);
       },
@@ -163,23 +170,45 @@ export class CategoryAdminPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  onCategorySaved() {
-    console.log('Categoría guardada, refrescando lista');
-    this.searchSubject.next(this.searchParam());
+  onCategorySaved(category: Category) {
+    const editingItem = this.genericModal.editingItem();
+    if (editingItem?.id) {
+      // Modo edición
+      console.log('Actualizando categoría:', category.name);
+      this.categoryService.updateCategory(editingItem.id, category.name).subscribe({
+        next: (updatedCategory) => {
+          console.log('Categoría actualizada:', updatedCategory);
+          this.categoriesData.update(categories =>
+            categories.map(c => c.id === updatedCategory.id ? updatedCategory : c)
+          );
+          this.alertService.show(`Categoría "${category.name}" actualizada exitosamente`, 'success', 2000);
+          this.genericModal.closeModal();
+        },
+        error: (error) => {
+          console.error('Error al actualizar categoría:', error);
+          this.alertService.show('Error al actualizar categoría', 'error', 2000);
+        }
+      });
+    } else {
+      // Modo creación
+      console.log('Creando nueva categoría:', category.name);
+      this.categoryService.createCategory(category.name).subscribe({
+        next: (newCategory) => {
+          console.log('Categoría creada:', newCategory);
+          this.categoriesData.update(categories => [...categories, newCategory]);
+          this.alertService.show(`Categoría "${category.name}" creada exitosamente`, 'success', 2000);
+          this.genericModal.closeModal();
+        },
+        error: (error) => {
+          console.error('Error al crear categoría:', error);
+          this.alertService.show('Error al crear categoría', 'error', 2000);
+        }
+      });
+    }
   }
 
   get errorMessage(): string {
-    const error = this.productResource.error();
-    if (!error) return '';
-    const httpError = error as HttpErrorResponse;
-
-    if (httpError.status === 400) {
-      return httpError.error?.message || httpError.message || 'Solicitud inválida';
-    }
-    if (httpError.status === 500) {
-      return httpError.error?.message || 'Error interno del servidor';
-    }
-    return httpError.error?.message || httpError.message || 'Error desconocido';
+    return '';
   }
 
 }
