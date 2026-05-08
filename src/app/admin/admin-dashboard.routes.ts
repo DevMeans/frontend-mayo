@@ -14,8 +14,8 @@ export const adminDashboardRoute: Routes = [
         loadComponent: () => import('./pages/category-admin-page/category-admin-page.component').then(m => m.CategoryAdminPageComponent)
       },
       {
-        path: 'color',
-        loadComponent: () => import('./pages/color-admin-page/color-admin-page.component').then(m => m.ColorAdminPageComponent)
+        path: 'size',
+        loadComponent: () => import('./pages/size-admin-page/size-admin-page.component').then(m => m.SizeAdminPageComponent)
       },
       {
         path: '**',

@@ -1,0 +1,80 @@
+<div class="flex flex-col justify-center gap-5">
+  <div>
+    <p class="text-sm text-gray-500 mb-1">Admin Dashboard</p>
+    <h1 class="text-2xl font-bold mb-4">Size Admin Page</h1>
+  </div>
+  <div>
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">Settings</legend>
+      <div class="flex flex-row justify-between gap-5">
+        <div class="join">
+          <input type="text" class="input join-item" placeholder="Size name" (keyup)="obtenerTamanos(txtvalue.value)"  #txtvalue/>
+          <button class="btn join-item btn-primary" (click)="obtenerTamanos(txtvalue.value)">buscar</button>
+        </div>
+        <div class="flex items-center gap-4">
+          <label class="cursor-pointer label">
+            <span class="label-text">Activos</span>
+            <input type="checkbox" class="checkbox ml-2" [checked]="activeChecked()" (change)="setActiveChecked($event.target.checked)" />
+          </label>
+          <label class="cursor-pointer label">
+            <span class="label-text">Inactivos</span>
+            <input type="checkbox" class="checkbox ml-2" [checked]="inactiveChecked()" (change)="setInactiveChecked($event.target.checked)" />
+          </label>
+        </div>
+        <div>
+          <button class="btn btn-primary" (click)="openModal()">Agregar</button>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <!-- head -->
+      <thead>
+        <tr>
+          <th></th>
+          <th>Name</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- row 1 -->
+        @for (item of ListaTamanos(); track item.id) {
+          <tr>
+            <th>{{ $index + 1 }}</th>
+            <td>{{ item.name }}</td>
+            <td>
+              <div class="flex gap-2">
+                <button class="btn btn-sm btn-outline btn-info" (click)="openModalForEdit(item)">
+                  Editar
+                </button>
+                @if (item.isActive) {
+                  <button class="btn btn-sm btn-outline btn-error" (click)="deactivateSize(item)">
+                    Desactivar
+                  </button>
+                } @else {
+                  <button class="btn btn-sm btn-outline btn-success" (click)="activateSize(item)">
+                    Activar
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+          <!-- row 2 -->
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-generic-modal
+    [createTitle]="'Crear Nuevo Tamaño'"
+    [createDescription]="'Agrega un nuevo tamaño a tu tienda'"
+    [editTitle]="'Editar Tamaño'"
+    [editDescription]="'Modifica los datos del tamaño'"
+    [fieldLabel]="'Nombre del Tamaño'"
+    [fieldPlaceholder]="'Ingresa el nombre del tamaño...'"
+    (itemSaved)="onSizeSaved($event)"
+  ></app-generic-modal>
+  <app-confirm-modal></app-confirm-modal>
+  <app-alert></app-alert>
+</div>

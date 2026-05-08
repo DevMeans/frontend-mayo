@@ -30,7 +30,7 @@ export class GenericModalComponent implements OnInit {
 
   initializeForm() {
     this.itemForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(3)]]
+      name: ['', [Validators.required, Validators.minLength(1)]]
     });
   }
 
