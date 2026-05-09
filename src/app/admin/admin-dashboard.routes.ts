@@ -18,6 +18,10 @@ export const adminDashboardRoute: Routes = [
         loadComponent: () => import('./pages/size-admin-page/size-admin-page.component').then(m => m.SizeAdminPageComponent)
       },
       {
+        path: 'product',
+        loadComponent: () => import('./pages/product-admin-page/product-admin-page.component').then(m => m.ProductAdminPageComponent)
+      },
+      {
         path: '**',
         redirectTo: 'category'
       }

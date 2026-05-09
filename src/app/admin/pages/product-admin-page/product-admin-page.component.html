@@ -1,0 +1,84 @@
+<div class="flex flex-col justify-center gap-5">
+  <div>
+    <p class="text-sm text-gray-500 mb-1">Admin Dashboard</p>
+    <h1 class="text-2xl font-bold mb-4">Product Admin Page</h1>
+  </div>
+
+  <div>
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">Settings</legend>
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="join w-full lg:w-auto">
+          <input type="text" class="input join-item w-full" placeholder="Product name" (keyup)="obtenerProductos(txtvalue.value)" #txtvalue />
+          <button class="btn join-item btn-primary" (click)="obtenerProductos(txtvalue.value)">Buscar</button>
+        </div>
+        <div class="flex items-center gap-4">
+          <label class="cursor-pointer label">
+            <span class="label-text">Activos</span>
+            <input type="checkbox" class="checkbox ml-2" [checked]="activeChecked()" (change)="setActiveChecked($event.target.checked)" />
+          </label>
+          <label class="cursor-pointer label">
+            <span class="label-text">Inactivos</span>
+            <input type="checkbox" class="checkbox ml-2" [checked]="inactiveChecked()" (change)="setInactiveChecked($event.target.checked)" />
+          </label>
+        </div>
+        <div>
+          <button class="btn btn-primary" (click)="openModal()">Agregar</button>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="table w-full">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Nombre</th>
+          <th>Categoría</th>
+          <th>Variantes</th>
+          <th>Imágenes</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of ListaProductos(); track item.id) {
+          <tr>
+            <th>{{ $index + 1 }}</th>
+            <td>{{ item.name }}</td>
+            <td>{{ item.category?.name || item.categoryId }}</td>
+            <td>{{ item.variantCount ?? '-' }}</td>
+            <td>{{ item.imageCount ?? '-' }}</td>
+            <td>
+              @if (item.isActive) {
+                <span class="badge badge-success">Activo</span>
+              } @else {
+                <span class="badge badge-error">Inactivo</span>
+              }
+            </td>
+            <td>
+              <div class="flex flex-wrap gap-2">
+                <button class="btn btn-sm btn-outline btn-info" (click)="openModalForEdit(item)">Editar</button>
+                @if (item.isActive) {
+                  <button class="btn btn-sm btn-outline btn-error" (click)="deactivateProduct(item)">Desactivar</button>
+                } @else {
+                  <button class="btn btn-sm btn-outline btn-success" (click)="activateProduct(item)">Activar</button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-product-modal
+    [categories]="categories()"
+    [colors]="colors()"
+    [sizes]="sizes()"
+    (productSaved)="onProductSaved($event)"
+  ></app-product-modal>
+  <app-confirm-modal></app-confirm-modal>
+  <app-alert></app-alert>
+</div>

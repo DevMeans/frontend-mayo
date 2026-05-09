@@ -1,0 +1,172 @@
+<dialog id="product-modal" class="modal">
+  <div class="modal-box w-full max-w-5xl">
+    <div class="flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold">@if (isEditing) { Editar Producto } @else { Crear Producto }</h3>
+          <p class="text-sm text-gray-500">
+            @if (isEditing) { Actualiza los datos del producto existente. } @else { Completa los campos para crear un producto nuevo. }
+          </p>
+        </div>
+        <button class="btn btn-ghost" type="button" (click)="closeModal()">Cerrar</button>
+      </div>
+
+      @if (formError(); as error) {
+        <div class="alert alert-error">
+          <span>{{ error }}</span>
+        </div>
+      }
+
+      <form [formGroup]="productForm" (ngSubmit)="saveProduct()" class="grid gap-4">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div class="form-control w-full">
+            <label class="label"><span class="label-text">Nombre</span></label>
+            <input type="text" formControlName="name" class="input input-bordered w-full" placeholder="Nombre del producto" />
+            @if (submitted && productForm.get('name')?.invalid) {
+              <label class="label">
+                <span class="label-text-alt text-error">
+                  @if (productForm.get('name')?.errors?.['required']) { El nombre es obligatorio. }
+                  @else if (productForm.get('name')?.errors?.['minlength']) { El nombre debe tener al menos 3 caracteres. }
+                </span>
+              </label>
+            }
+          </div>
+
+          <div class="form-control w-full">
+            <label class="label"><span class="label-text">Categoría</span></label>
+            <select formControlName="categoryId" class="select select-bordered w-full">
+              <option value="" disabled selected>Selecciona una categoría</option>
+              @for (category of categories; track category.id) {
+                <option [value]="category.id">{{ category.name }}</option>
+              }
+            </select>
+            @if (submitted && productForm.get('categoryId')?.invalid) {
+              <label class="label">
+                <span class="label-text-alt text-error">Selecciona una categoría.</span>
+              </label>
+            }
+          </div>
+        </div>
+
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text">Descripción</span></label>
+          <textarea formControlName="description" class="textarea textarea-bordered w-full" rows="3" placeholder="Descripción opcional"></textarea>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+          <div class="card bg-base-200 p-4">
+            <h4 class="font-semibold mb-2">Colores</h4>
+            <div class="grid gap-2">
+              @for (color of colors; track color.id) {
+                <label class="label cursor-pointer">
+                  <input
+                    type="checkbox"
+                    class="checkbox mr-2"
+                    [checked]="selectedColorIds().includes(color.id)"
+                    (change)="toggleColor(color.id, $event.target.checked)"
+                  />
+                  <span>{{ color.name }}</span>
+                </label>
+              }
+            </div>
+          </div>
+
+          <div class="card bg-base-200 p-4">
+            <h4 class="font-semibold mb-2">Tallas</h4>
+            <div class="grid gap-2">
+              @for (size of sizes; track size.id) {
+                <label class="label cursor-pointer">
+                  <input
+                    type="checkbox"
+                    class="checkbox mr-2"
+                    [checked]="selectedSizeIds().includes(size.id)"
+                    (change)="toggleSize(size.id, $event.target.checked)"
+                  />
+                  <span>{{ size.name }}</span>
+                </label>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (!isEditing) {
+          <div class="flex flex-col gap-3">
+            <button class="btn btn-primary w-full max-w-xs" type="button" (click)="generateVariants()">Generar variantes</button>
+
+            @if (variants().length) {
+              <div class="overflow-x-auto rounded-box border border-base-200 bg-base-100 p-4">
+                <h4 class="font-semibold mb-3">Variantes generadas</h4>
+                <table class="table w-full">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Color</th>
+                      <th>Talla</th>
+                      <th>Precio</th>
+                      <th>URL imagen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (variant of variants(); track variant.colorId + '-' + variant.sizeId) {
+                      <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ getColorName(variant.colorId) }}</td>
+                        <td>{{ getSizeName(variant.sizeId) }}</td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="input input-bordered w-full"
+                            [value]="variant.price"
+                            (input)="onVariantPriceChange($index, $event.target.value)"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            class="input input-bordered w-full"
+                            [value]="variant.imageUrl || ''"
+                            (input)="onVariantImageChange($index, $event.target.value)"
+                            placeholder="Opcional"
+                          />
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+
+          <div class="form-control w-full">
+            <label class="label"><span class="label-text">URLs de imágenes</span></label>
+            <textarea
+              formControlName="imageUrls"
+              class="textarea textarea-bordered w-full"
+              rows="3"
+              placeholder="Ingresa URLs separadas por comas o líneas"
+            ></textarea>
+          </div>
+        }
+
+        @if (isEditing) {
+          <div class="form-control w-full">
+            <label class="label cursor-pointer">
+              <span class="label-text">Producto activo</span>
+              <input type="checkbox" class="checkbox ml-2" formControlName="isActive" />
+            </label>
+          </div>
+        }
+
+        <div class="modal-action justify-end">
+          <button type="button" class="btn btn-ghost" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">@if (isEditing) { Actualizar } @else { Crear producto }</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>cerrar</button>
+  </form>
+</dialog>

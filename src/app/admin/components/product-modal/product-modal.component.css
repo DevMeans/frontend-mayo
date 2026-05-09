@@ -1,0 +1,8 @@
+/* Styles for product modal form */
+.modal-box {
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+}
+.table input {
+  min-width: 120px;
+}
