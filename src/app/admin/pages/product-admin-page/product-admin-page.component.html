@@ -47,7 +47,7 @@
           <tr>
             <th>{{ $index + 1 }}</th>
             <td>{{ item.name }}</td>
-            <td>{{ item.category?.name || item.categoryId }}</td>
+            <td>{{ getCategoryName(item.categoryId, item.category?.name) }}</td>
             <td>{{ item.variantCount ?? '-' }}</td>
             <td>{{ item.imageCount ?? '-' }}</td>
             <td>

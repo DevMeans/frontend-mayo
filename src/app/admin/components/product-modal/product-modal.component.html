@@ -16,6 +16,11 @@
           <span>{{ error }}</span>
         </div>
       }
+      @if (formMessage(); as message) {
+        <div class="alert alert-success">
+          <span>{{ message }}</span>
+        </div>
+      }
 
       <form [formGroup]="productForm" (ngSubmit)="saveProduct()" class="grid gap-4">
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -89,66 +94,91 @@
           </div>
         </div>
 
-        @if (!isEditing) {
-          <div class="flex flex-col gap-3">
-            <button class="btn btn-primary w-full max-w-xs" type="button" (click)="generateVariants()">Generar variantes</button>
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text">Imágenes del producto</span></label>
+          <input
+            type="file"
+            accept="image/*"
+            class="file-input file-input-bordered w-full"
+            multiple
+            (change)="onProductImagesChange($event.target.files)"
+          />
+          <p class="text-sm text-gray-500 mt-2">Selecciona archivos locales para previsualizar. Las imágenes se subirán al guardar.</p>
 
-            @if (variants().length) {
-              <div class="overflow-x-auto rounded-box border border-base-200 bg-base-100 p-4">
-                <h4 class="font-semibold mb-3">Variantes generadas</h4>
-                <table class="table w-full">
-                  <thead>
+          @if (productImages().length) {
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+              @for (image of productImages(); track image.preview + image.url) {
+                <div class="card bg-base-200 p-2">
+                  <img src="{{ image.preview }}" class="w-full h-24 object-cover rounded" alt="Imagen del producto" />
+                  <div class="mt-2 flex items-center justify-between gap-2">
+                    <span class="text-xs text-gray-600 truncate">{{ image.file?.name || image.url }}</span>
+                    <button
+                      class="btn btn-xs btn-error"
+                      type="button"
+                      [disabled]="deletingImageIndex() === $index"
+                      (click)="removeProductImage($index)">
+                      @if (deletingImageIndex() === $index) { Eliminando... } @else { Eliminar }
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <button class="btn btn-primary w-full max-w-xs" type="button" (click)="generateVariants()">Generar variantes</button>
+
+          @if (variants().length) {
+            <div class="overflow-x-auto rounded-box border border-base-200 bg-base-100 p-4">
+              <h4 class="font-semibold mb-3">Variantes</h4>
+              <table class="table w-full table-sm">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Color</th>
+                    <th>Talla</th>
+                    <th>Precio</th>
+                    <th>Imagen</th>
+                    <th>Preview</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (variant of variants(); track variant.colorId + '-' + variant.sizeId) {
                     <tr>
-                      <th>#</th>
-                      <th>Color</th>
-                      <th>Talla</th>
-                      <th>Precio</th>
-                      <th>URL imagen</th>
+                      <td>{{ $index + 1 }}</td>
+                      <td>{{ getColorName(variant.colorId) }}</td>
+                      <td>{{ getSizeName(variant.sizeId) }}</td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          class="input input-bordered input-sm w-20"
+                          [value]="variant.price"
+                          (input)="onVariantPriceChange($index, $event.target.value)"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          class="file-input file-input-bordered file-input-sm w-32"
+                          (change)="onVariantImageFileChange($event.target.files, $index)"
+                        />
+                      </td>
+                      <td>
+                        @if (getVariantPreview(variant)) {
+                          <img src="{{ getVariantPreview(variant) }}" class="w-12 h-12 object-cover rounded" alt="Preview variante" />
+                        }
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (variant of variants(); track variant.colorId + '-' + variant.sizeId) {
-                      <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ getColorName(variant.colorId) }}</td>
-                        <td>{{ getSizeName(variant.sizeId) }}</td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            class="input input-bordered w-full"
-                            [value]="variant.price"
-                            (input)="onVariantPriceChange($index, $event.target.value)"
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            class="input input-bordered w-full"
-                            [value]="variant.imageUrl || ''"
-                            (input)="onVariantImageChange($index, $event.target.value)"
-                            placeholder="Opcional"
-                          />
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
-          </div>
-
-          <div class="form-control w-full">
-            <label class="label"><span class="label-text">URLs de imágenes</span></label>
-            <textarea
-              formControlName="imageUrls"
-              class="textarea textarea-bordered w-full"
-              rows="3"
-              placeholder="Ingresa URLs separadas por comas o líneas"
-            ></textarea>
-          </div>
-        }
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
 
         @if (isEditing) {
           <div class="form-control w-full">

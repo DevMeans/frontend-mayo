@@ -13,6 +13,11 @@ import {
 } from '../../../product/interfaces/product.interface';
 import { ProductService } from '../../../product/services/product.service';
 
+interface ProductVariantForm extends ProductVariant {
+  imageFile?: File;
+  imagePreview?: string;
+}
+
 @Component({
   selector: 'app-product-modal',
   standalone: true,
@@ -33,10 +38,13 @@ export class ProductModalComponent implements OnInit {
   productForm!: FormGroup;
   submitted = false;
   editingProduct = signal<Product | null>(null);
-  variants = signal<ProductVariant[]>([]);
+  variants = signal<ProductVariantForm[]>([]);
+  productImages = signal<Array<{ file?: File; preview: string; url?: string; publicId?: string }>>([]);
   selectedColorIds = signal<number[]>([]);
   selectedSizeIds = signal<number[]>([]);
+  deletingImageIndex = signal<number | null>(null);
   formError = signal<string>('');
+  formMessage = signal<string>('');
 
   private productService = inject(ProductService);
 
@@ -50,7 +58,6 @@ export class ProductModalComponent implements OnInit {
       description: [''],
       categoryId: [null, Validators.required],
       isActive: [true],
-      imageUrls: ['']
     });
   }
 
@@ -58,17 +65,42 @@ export class ProductModalComponent implements OnInit {
     this.submitted = false;
     this.formError.set('');
     this.variants.set([]);
+    this.productImages.set([]);
     this.selectedColorIds.set([]);
     this.selectedSizeIds.set([]);
     this.editingProduct.set(product);
 
     if (product) {
+      const productVariantIds = product.variants?.map((variant) => variant.colorId) || [];
+      const productSizeIds = product.variants?.map((variant) => variant.sizeId) || [];
+
+      this.selectedColorIds.set([...new Set(productVariantIds)]);
+      this.selectedSizeIds.set([...new Set(productSizeIds)]);
+      this.variants.set(
+        (product.variants || []).map((variant) => ({
+          colorId: variant.colorId,
+          sizeId: variant.sizeId,
+          price: Number(variant.price),
+          imageUrl: variant.imageUrl || undefined,
+          imagePreview: variant.imageUrl || undefined,
+        })),
+      );
+      this.productImages.set(
+        (product.images || []).map((image) => {
+          const publicId = this.extractPublicIdFromUrl(image.url);
+          return {
+            preview: image.url,
+            url: image.url,
+            publicId,
+          };
+        }),
+      );
+
       this.productForm.patchValue({
         name: product.name,
         description: product.description || '',
         categoryId: product.categoryId,
         isActive: product.isActive,
-        imageUrls: ''
       });
     } else {
       this.productForm.reset({
@@ -76,8 +108,21 @@ export class ProductModalComponent implements OnInit {
         description: '',
         categoryId: null,
         isActive: true,
-        imageUrls: ''
       });
+    }
+  }
+
+  private extractPublicIdFromUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/');
+      const filenameWithExt = pathParts[pathParts.length - 1];
+      const filename = filenameWithExt.split('?')[0];
+      const publicId = filename.includes('.') ? filename.substring(0, filename.lastIndexOf('.')) : filename;
+      const folder = pathParts[pathParts.length - 2];
+      return `${folder}/${publicId}`;
+    } catch {
+      return url;
     }
   }
 
@@ -114,13 +159,20 @@ export class ProductModalComponent implements OnInit {
     }
 
     const response = await firstValueFrom(this.productService.generateVariants({ colorIds: colors, sizeIds: sizes }));
-    const generated = response.variants.map((variant) => ({
-      colorId: variant.colorId,
-      sizeId: variant.sizeId,
-      price: 0,
-      imageUrl: ''
-    }));
-    this.variants.set(generated);
+    const existingVariants = new Map(this.variants().map((variant) => ([`${variant.colorId}-${variant.sizeId}`, variant])));
+
+    const mergedVariants = response.variants.map((variant) => {
+      const key = `${variant.colorId}-${variant.sizeId}`;
+      const existing = existingVariants.get(key);
+      return existing ? existing : {
+        colorId: variant.colorId,
+        sizeId: variant.sizeId,
+        price: 0,
+        imageUrl: undefined,
+      } as ProductVariantForm;
+    });
+
+    this.variants.set(mergedVariants);
   }
 
   onVariantPriceChange(index: number, value: string) {
@@ -140,7 +192,117 @@ export class ProductModalComponent implements OnInit {
     });
   }
 
-  saveProduct() {
+  onProductImagesChange(files: FileList | null) {
+    if (!files) {
+      return;
+    }
+
+    const selectedImages = Array.from(files).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    this.productImages.update((current) => [...current, ...selectedImages]);
+  }
+
+  async removeProductImage(index: number) {
+    const image = this.productImages()[index];
+    this.formError.set('');
+    this.formMessage.set('');
+    this.deletingImageIndex.set(index);
+
+    if (image.publicId) {
+      try {
+        await firstValueFrom(this.productService.deleteImage(image.publicId));
+        this.formMessage.set('Imagen eliminada');
+      } catch (error) {
+        console.error('Error eliminando imagen:', error);
+        this.formError.set('Error al eliminar la imagen');
+        this.deletingImageIndex.set(null);
+        return;
+      }
+    }
+
+    this.productImages.update((current) => current.filter((_, idx) => idx !== index));
+    this.deletingImageIndex.set(null);
+  }
+
+  async onVariantImageFileChange(files: FileList | null, index: number) {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    const file = files[0];
+    const preview = URL.createObjectURL(file);
+
+    this.variants.update((current) => {
+      const next = [...current];
+      next[index] = { ...next[index], imageFile: file, imagePreview: preview } as ProductVariantForm;
+      return next;
+    });
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1] || '';
+        resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private async buildImageFilesPayload() {
+    const images = this.productImages();
+    const fileImages = [] as Array<{ filename: string; data: string }>;
+
+    for (const image of images) {
+      if (image.file) {
+        const data = await this.fileToBase64(image.file);
+        fileImages.push({ filename: image.file.name, data });
+      }
+    }
+
+    return fileImages;
+  }
+
+  private async buildVariantPayload(currentVariants: ProductVariantForm[]) {
+    const payloadVariants = [] as Array<{
+      colorId: number;
+      sizeId: number;
+      price: number;
+      imageUrl?: string;
+      imageFile?: { filename: string; data: string };
+    }>;
+
+    for (const variant of currentVariants) {
+      const variantPayload: any = {
+        colorId: variant.colorId,
+        sizeId: variant.sizeId,
+        price: variant.price,
+      };
+
+      if (variant.imageUrl) {
+        variantPayload.imageUrl = variant.imageUrl;
+      }
+
+      if (variant.imageFile) {
+        variantPayload.imageFile = {
+          filename: variant.imageFile.name,
+          data: await this.fileToBase64(variant.imageFile),
+        };
+      }
+
+      payloadVariants.push(variantPayload);
+    }
+
+    return payloadVariants;
+  }
+
+  async saveProduct() {
     this.submitted = true;
     this.formError.set('');
 
@@ -152,29 +314,10 @@ export class ProductModalComponent implements OnInit {
     const description = this.productForm.value.description?.trim();
     const categoryId = Number(this.productForm.value.categoryId);
     const isActive = this.productForm.value.isActive;
-    const rawImages = this.productForm.value.imageUrls || '';
-    const imageUrls = rawImages
-      .split(/\r?\n|,/)
-      .map((image: string) => image.trim())
-      .filter((image: string) => image.length > 0);
-
-    if (this.isEditing) {
-      this.productSaved.emit({
-        mode: 'edit',
-        id: this.editingProduct()?.id,
-        payload: {
-          name,
-          description,
-          categoryId,
-          isActive
-        }
-      });
-      return;
-    }
 
     const currentVariants = this.variants();
     if (!currentVariants.length) {
-      this.formError.set('Genera las variantes antes de crear el producto.');
+      this.formError.set('Genera las variantes antes de crear o actualizar el producto.');
       return;
     }
 
@@ -184,19 +327,40 @@ export class ProductModalComponent implements OnInit {
       return;
     }
 
+    const imageFiles = await this.buildImageFilesPayload();
+    const payloadVariants = await this.buildVariantPayload(currentVariants);
+
+    if (this.isEditing) {
+      const keptImageUrls = this.productImages()
+        .filter((image) => image.url)
+        .map((image) => image.url!) || [];
+
+      this.productSaved.emit({
+        mode: 'edit',
+        id: this.editingProduct()?.id,
+        payload: {
+          name,
+          description,
+          categoryId,
+          isActive,
+          colorIds: this.selectedColorIds(),
+          sizeIds: this.selectedSizeIds(),
+          imageUrls: keptImageUrls,
+          imageFiles: imageFiles.length ? imageFiles : undefined,
+          variants: payloadVariants,
+        }
+      });
+      return;
+    }
+
     const payload: ProductCreateRequest = {
       name,
       description,
       categoryId,
       colorIds: this.selectedColorIds(),
       sizeIds: this.selectedSizeIds(),
-      imageUrls: imageUrls.length ? imageUrls : undefined,
-      variants: currentVariants.map((variant) => ({
-        colorId: variant.colorId,
-        sizeId: variant.sizeId,
-        price: variant.price,
-        imageUrl: variant.imageUrl || undefined
-      }))
+      imageFiles: imageFiles.length ? imageFiles : undefined,
+      variants: payloadVariants,
     };
 
     this.productSaved.emit({
@@ -213,12 +377,12 @@ export class ProductModalComponent implements OnInit {
     this.setEditingProduct(null);
   }
 
-  get colorLabels() {
-    return this.colors;
-  }
-
   get sizeLabels() {
     return this.sizes;
+  }
+
+  getVariantPreview(variant: ProductVariantForm) {
+    return variant.imagePreview || variant.imageUrl || '';
   }
 
   getColorName(colorId: number): string {

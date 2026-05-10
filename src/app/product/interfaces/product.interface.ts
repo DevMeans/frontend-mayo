@@ -21,6 +21,8 @@ export interface Product {
   category?: Pick<Category, 'id' | 'name'>;
   variantCount?: number;
   imageCount?: number;
+  variants?: ProductVariant[];
+  images?: Array<{ id: number; url: string }>;
 }
 
 export interface ProductVariant {
@@ -37,11 +39,13 @@ export interface ProductCreateRequest {
   colorIds: number[];
   sizeIds: number[];
   imageUrls?: string[];
+  imageFiles?: Array<{ filename: string; data: string }>;
   variants: Array<{
     colorId: number;
     sizeId: number;
     price: number;
     imageUrl?: string | null;
+    imageFile?: { filename: string; data: string };
   }>;
 }
 
@@ -50,6 +54,17 @@ export interface ProductUpdateRequest {
   description?: string;
   categoryId?: number;
   isActive?: boolean;
+  colorIds?: number[];
+  sizeIds?: number[];
+  imageUrls?: string[];
+  imageFiles?: Array<{ filename: string; data: string }>;
+  variants?: Array<{
+    colorId: number;
+    sizeId: number;
+    price: number;
+    imageUrl?: string | null;
+    imageFile?: { filename: string; data: string };
+  }>;
 }
 
 export interface GenerateVariantsRequest {

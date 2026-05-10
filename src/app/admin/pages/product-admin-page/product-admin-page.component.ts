@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { ProductModalComponent } from '../../components/product-modal/product-modal.component';
 import { ProductService } from '../../../product/services/product.service';
 import { Product } from '../../../product/interfaces/product.interface';
@@ -126,6 +127,15 @@ export class ProductAdminPageComponent implements OnInit, OnDestroy {
     this.searchSubject.next(param);
   }
 
+  getCategoryName(categoryId: number, categoryName?: string) {
+    if (categoryName) {
+      return categoryName;
+    }
+
+    const category = this.categories().find((item) => item.id === categoryId);
+    return category ? category.name : String(categoryId);
+  }
+
   openModal() {
     this.productModal.setEditingProduct(null);
     const modal = document.getElementById('product-modal') as HTMLDialogElement;
@@ -134,11 +144,17 @@ export class ProductAdminPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  openModalForEdit(product: Product) {
-    this.productModal.setEditingProduct(product);
-    const modal = document.getElementById('product-modal') as HTMLDialogElement;
-    if (modal) {
-      modal.showModal();
+  async openModalForEdit(product: Product) {
+    try {
+      const detailedProduct = await firstValueFrom(this.productService.getProductById(product.id));
+      this.productModal.setEditingProduct(detailedProduct);
+      const modal = document.getElementById('product-modal') as HTMLDialogElement;
+      if (modal) {
+        modal.showModal();
+      }
+    } catch (error) {
+      console.error('Error al cargar el producto para edición:', error);
+      this.alertService.show('No se pudo cargar el producto para edición', 'error', 2000);
     }
   }
 

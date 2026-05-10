@@ -54,4 +54,9 @@ export class ProductService {
   setProductActive(id: number, isActive: boolean): Observable<{ product: Product; message: string }> {
     return this.http.patch<{ product: Product; message: string }>(`${baseurl}/products/${id}`, { isActive });
   }
+
+  deleteImage(publicId: string): Observable<{ message: string }> {
+    const encodedPublicId = encodeURIComponent(publicId);
+    return this.http.delete<{ message: string }>(`${baseurl}/products/image/${encodedPublicId}`);
+  }
 }
