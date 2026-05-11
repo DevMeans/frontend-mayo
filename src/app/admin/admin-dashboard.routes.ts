@@ -1,13 +1,14 @@
 import { Routes } from '@angular/router';
 import { AdminDashboardLayoutComponent } from './layouts/admin-dashboard-layout/admin-dashboard-layout.component';
+import { AuthGuard } from '../auth/auth.guard';
 
 
 
 export const adminDashboardRoute: Routes = [
   {
-
     path: '',
     component: AdminDashboardLayoutComponent,
+    canActivate: [AuthGuard],
     children: [
       {
         path: 'category',
