@@ -196,6 +196,7 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   }
 
   openMovementDrawer(inventory: Inventory, type: 'IN' | 'OUT' | 'ADJUSTMENT') {
+    this.blurActiveElement();
     this.selectedInventory.set(inventory);
     this.movementType.set(type);
     this.movementQuantity.set(0);
@@ -206,6 +207,7 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   }
 
   openHistoryDrawer(inventory?: Inventory) {
+    this.blurActiveElement();
     this.selectedInventory.set(inventory ?? null);
     this.movementErrorMessage.set('');
     this.historyMode.set(true);
@@ -213,6 +215,15 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     if (!this.movementsData().length) {
       this.loadMovements();
     }
+  }
+
+  private blurActiveElement() {
+    requestAnimationFrame(() => {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && typeof active.blur === 'function') {
+        active.blur();
+      }
+    });
   }
 
   showTransferNotice() {
