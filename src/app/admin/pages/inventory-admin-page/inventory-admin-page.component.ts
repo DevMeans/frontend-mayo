@@ -1,4 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { InventoryService } from '../../../inventory/services/inventory.service';
 import { Inventory } from '../../../inventory/interfaces/inventory.interface';
 import { Subject } from 'rxjs';
@@ -13,7 +15,8 @@ import { Product, ProductVariant } from '../../../product/interfaces/product.int
   selector: 'app-inventory-admin-page',
   templateUrl: './inventory-admin-page.component.html',
   styleUrls: ['./inventory-admin-page.component.css'],
-  standalone: true
+  standalone: true,
+  imports: [DatePipe]
 })
 export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   private inventoryService = inject(InventoryService);
@@ -30,7 +33,10 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   selectedColorId = signal<number | null>(null);
   selectedVariantId = signal<number | null>(null);
   createQuantity = signal<number>(0);
+  movementType = signal<'IN' | 'OUT' | 'ADJUSTMENT' | 'RESERVED' | 'UNRESERVED'>('IN');
+  movementNote = signal<string>('');
   creatingInventory = signal<boolean>(false);
+  movementsData = signal<any[]>([]);
   searchSubject = new Subject<string>();
   searchParam = signal<string>('');
   skuFilter = signal<string>('');
@@ -74,6 +80,10 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
 
   get canCreateInventory() {
     return !!this.selectedStoreId() && !!this.selectedVariantId() && this.createQuantity() > 0 && !this.creatingInventory();
+  }
+
+  get recentMovements() {
+    return this.movementsData().slice(0, 10);
   }
 
   private getFilteredInventories(): Inventory[] {
@@ -129,6 +139,7 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     this.loadInventories();
     this.loadStoreOptions();
     this.loadVariantOptions();
+    this.loadMovements();
     this.searchSubject.pipe(debounceTime(400)).subscribe((param) => {
       this.searchParam.set(param);
     });
@@ -150,6 +161,18 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
           this.alertService.show('Error al cargar el inventario', 'error', 3000);
         }
       });
+  }
+
+  private loadMovements() {
+    this.inventoryService.listMovements().subscribe({
+      next: (movements) => {
+        this.movementsData.set(movements);
+      },
+      error: (error: unknown) => {
+        console.error('Error al cargar movimientos:', error);
+        this.alertService.show('Error al cargar movimientos', 'error', 3000);
+      }
+    });
   }
 
   private loadStoreOptions() {
@@ -192,27 +215,43 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
 
     this.creatingInventory.set(true);
 
-    this.inventoryService.createInventoryEntry({
+    this.inventoryService.createMovement({
       storeId: this.selectedStoreId()!,
       variantId: this.selectedVariantId()!,
-      quantity: this.createQuantity()
+      quantity: this.createQuantity(),
+      type: this.movementType(),
+      note: this.movementNote() || undefined,
     }).subscribe({
       next: () => {
-        this.alertService.show('Inventario creado/actualizado correctamente', 'success', 3000);
+        this.alertService.show('Movimiento registrado correctamente', 'success', 3000);
         this.createQuantity.set(0);
         this.selectedStoreId.set(null);
         this.selectedVariantId.set(null);
+        this.movementNote.set('');
         this.loadInventories();
+        this.loadMovements();
       },
       error: (error: unknown) => {
-        console.error('Error al crear inventario:', error);
-        this.alertService.show('Error al crear inventario', 'error', 3000);
+        const message = this.getErrorMessage(error, 'Error al registrar movimiento');
+        console.error('Error al registrar movimiento:', error);
+        this.alertService.show(message, 'error', 3000);
         this.creatingInventory.set(false);
       },
       complete: () => {
         this.creatingInventory.set(false);
       }
     });
+  }
+
+  private getErrorMessage(error: unknown, fallback: string) {
+    if (error instanceof HttpErrorResponse) {
+      return error.error?.message || error.message || fallback;
+    }
+    if (typeof error === 'object' && error !== null) {
+      const anyError = error as any;
+      return anyError.error?.message || anyError.message || fallback;
+    }
+    return fallback;
   }
 
   setStoreId(value: string) {
@@ -225,6 +264,15 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     this.selectedVariantId.set(Number.isFinite(id) ? id : null);
   }
 
+  setMovementType(value: string) {
+    const type = value as 'IN' | 'OUT' | 'ADJUSTMENT' | 'RESERVED' | 'UNRESERVED';
+    this.movementType.set(type);
+  }
+
+  setMovementNote(value: string) {
+    this.movementNote.set(value);
+  }
+
   setCreateQuantity(value: string) {
     const quantity = Number(value);
     this.createQuantity.set(Number.isFinite(quantity) ? quantity : 0);
@@ -232,6 +280,7 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
 
   refresh() {
     this.loadInventories();
+    this.loadMovements();
   }
 
   onSearch(param: string) {

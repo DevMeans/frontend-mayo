@@ -604,3 +604,180 @@ Mostrar:
 - sincronización inventario
 ```
 
+---
+
+# 🟡 US-I7 — Alertas de stock bajo
+
+## 📌 Summary
+Alertas de stock bajo
+
+## 📝 Description
+
+```text
+## Descripción
+Como administrador quiero recibir alertas de stock bajo para reaccionar antes de quedarme sin productos.
+
+## UX / Interfaz
+
+### Vista inventario
+Mostrar:
+- indicador de stock bajo
+- productos con stock disponible menor al umbral
+- enlace a lista de inventario filtrada
+
+### Opciones
+- establecer umbral de alerta
+- recibir alertas en dashboard
+
+---
+
+## Reglas de negocio
+- El umbral se calcula por producto/variante
+- El sistema alerta cuando stock disponible <= umbral
+- Las alertas deben actualizarse en tiempo real con los movimientos
+
+---
+
+## Criterios de aceptación
+- Puedo ver productos con stock bajo
+- Puedo establecer un umbral de alerta
+- Las alertas se actualizan al registrar movimientos
+- El sistema destaca productos críticos
+```
+
+## 🔴 Subtareas
+
+### 🧱 DB
+- tabla InventoryAlert (opcional)
+
+### ⚙️ Backend
+- GET /inventory/alerts
+- lógica de umbral y alerta
+
+### 🎨 Frontend
+- panel de alertas
+- filtro stock bajo
+
+### 🔗 Integración
+- notificaciones en dashboard
+
+---
+
+# 🟡 US-I8 — Ajustar inventario manualmente
+
+## 📌 Summary
+Ajustar inventario manualmente
+
+## 📝 Description
+
+```text
+## Descripción
+Como operador quiero ajustar el stock manualmente para corregir diferencias y errores de conteo.
+
+## UX / Interfaz
+
+### Modal ajuste
+Campos:
+- tienda
+- variante
+- cantidad ajustada
+- tipo de ajuste
+- motivo
+
+### Tipos
+- incremento
+- decremento
+- corrección
+
+---
+
+## Reglas de negocio
+- El ajuste debe registrar motivo y usuario responsable
+- No se permite cantidad negativa en stock total
+- El stock disponible se recalcula automáticamente
+
+---
+
+## Criterios de aceptación
+- Puedo ajustar stock manualmente
+- El movimiento de ajuste queda registrado
+- El inventario se actualiza correctamente
+- No se permite ajuste a valores inválidos
+```
+
+## 🔴 Subtareas
+
+### 🧱 DB
+- tabla InventoryAdjustment
+
+### ⚙️ Backend
+- POST /inventory/adjustments
+- persistir motivo y responsable
+
+### 🎨 Frontend
+- modal de ajuste
+- validaciones
+
+### 🔗 Integración
+- actualizar inventario en tiempo real
+
+---
+
+# 🟡 US-I9 — Reportes y métricas de inventario
+
+## 📌 Summary
+Reportes de inventario
+
+## 📝 Description
+
+```text
+## Descripción
+Como gerente quiero consultar reportes de inventario para tomar decisiones basadas en métricas.
+
+## UX / Interfaz
+
+### Panel reportes
+Mostrar:
+- stock total por tienda
+- movimientos por rango de fechas
+- productos con stock crítico
+- tendencias de consumo
+
+### Acciones
+- exportar a CSV
+- filtrar por periodo
+- descargar reporte
+
+---
+
+## Reglas de negocio
+- Los reportes deben calcular stock actual y movimientos históricos
+- Las cifras deben ser precisas y actualizadas
+- El usuario puede exportar datos para análisis externos
+
+---
+
+## Criterios de aceptación
+- Puedo ver reportes de inventario
+- Puedo filtrar por fechas y tienda
+- Puedo exportar informes
+- El reporte muestra stock crítico y movimientos
+```
+
+## 🔴 Subtareas
+
+### 🧱 DB
+- vistas o consultas optimizadas para reportes
+
+### ⚙️ Backend
+- GET /inventory/reports
+- exportar CSV/Excel
+
+### 🎨 Frontend
+- panel de métricas
+- exportar reportes
+
+### 🔗 Integración
+- sincronizar datos con inventario actual
+
+

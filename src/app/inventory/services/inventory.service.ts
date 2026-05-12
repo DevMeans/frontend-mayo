@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Inventory } from '../interfaces/inventory.interface';
+import { Inventory, InventoryMovement, InventoryMovementType } from '../interfaces/inventory.interface';
 
 const baseurl = environment.apiUrl;
 
@@ -34,12 +34,23 @@ export class InventoryService {
     return this.http.get<Inventory[]>(`${baseurl}/inventory?${params.toString()}`);
   }
 
-  createInventoryEntry(body: { storeId: number; variantId: number; quantity: number }): Observable<{ inventory: Inventory; movement: any }> {
-    return this.http.post<{ inventory: Inventory; movement: any }>(`${baseurl}/inventory/movements`, {
+  listMovements(): Observable<InventoryMovement[]> {
+    return this.http.get<InventoryMovement[]>(`${baseurl}/inventory/movements`);
+  }
+
+  createMovement(body: {
+    storeId: number;
+    variantId: number;
+    quantity: number;
+    type: InventoryMovementType;
+    note?: string;
+  }): Observable<{ inventory: Inventory; movement: InventoryMovement }> {
+    return this.http.post<{ inventory: Inventory; movement: InventoryMovement }>(`${baseurl}/inventory/movements`, {
       storeId: body.storeId,
       variantId: body.variantId,
-      type: 'IN',
-      quantity: body.quantity
+      type: body.type,
+      quantity: body.quantity,
+      note: body.note,
     });
   }
 }

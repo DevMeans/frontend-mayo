@@ -33,6 +33,30 @@ export interface Inventory {
   id: number;
   stock: number;
   reservedStock: number;
+  availableStock?: number;
   store: InventoryStore;
   variant: InventoryVariant;
+}
+
+export type InventoryMovementType =
+  | 'IN'
+  | 'OUT'
+  | 'ADJUSTMENT'
+  | 'TRANSFER_OUT'
+  | 'TRANSFER_IN'
+  | 'RESERVED'
+  | 'UNRESERVED';
+
+export interface InventoryMovement {
+  id: number;
+  type: InventoryMovementType;
+  quantity: number;
+  note?: string;
+  createdAt: string;
+  inventory: Inventory;
+  responsibleUser?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
 }

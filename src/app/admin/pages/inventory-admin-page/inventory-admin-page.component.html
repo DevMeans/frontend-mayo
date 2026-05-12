@@ -89,7 +89,11 @@
 
   <div>
     <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
-      <legend class="fieldset-legend">Crear inventario</legend>
+      <legend class="fieldset-legend">Registrar movimiento de inventario</legend>
+      <div class="mb-4 rounded-lg border border-base-300 bg-base-100 p-4 text-sm text-base-content">
+        <p class="font-medium">Nota:</p>
+        <p>Este formulario ajusta el stock de variantes ya existentes. La creación de productos y variantes se hace en el módulo de Producto y no registra existencias automáticamente.</p>
+      </div>
       <div class="grid gap-4 lg:grid-cols-4">
         <label class="flex flex-col gap-2">
           <span class="label-text">Tienda</span>
@@ -112,13 +116,29 @@
         </label>
 
         <label class="flex flex-col gap-2">
+          <span class="label-text">Tipo de movimiento</span>
+          <select class="select w-full" [value]="movementType()" (change)="setMovementType($any($event.target).value)">
+            <option value="IN">Ingreso</option>
+            <option value="OUT">Salida</option>
+            <option value="ADJUSTMENT">Ajuste</option>
+            <option value="RESERVED">Reservar</option>
+            <option value="UNRESERVED">Liberar reserva</option>
+          </select>
+        </label>
+
+        <label class="flex flex-col gap-2">
           <span class="label-text">Cantidad</span>
           <input type="number" class="input w-full" min="1" [value]="createQuantity()" (input)="setCreateQuantity($any($event.target).value)" />
         </label>
 
-        <div class="flex items-end">
+        <label class="flex flex-col gap-2 lg:col-span-2">
+          <span class="label-text">Nota</span>
+          <input type="text" class="input w-full" [value]="movementNote()" (input)="setMovementNote($any($event.target).value)" placeholder="Ej. Ajuste de conteo o motivo" />
+        </label>
+
+        <div class="flex items-end lg:col-span-2">
           <button class="btn btn-primary w-full" [disabled]="!canCreateInventory" (click)="createInventory()">
-            Crear inventario
+            Registrar movimiento
           </button>
         </div>
       </div>
@@ -156,5 +176,39 @@
         }
       </tbody>
     </table>
+  </div>
+
+  <div class="mt-6">
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">Historial de movimientos</legend>
+      <div class="overflow-x-auto rounded-lg border border-base-300">
+        <table class="table table-sm table-zebra w-full bg-base-100">
+          <thead class="bg-base-200 text-base-content">
+            <tr>
+              <th class="w-12">#</th>
+              <th>Fecha</th>
+              <th>Tienda</th>
+              <th>SKU</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th>Nota</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (movement of recentMovements; track movement.id) {
+              <tr>
+                <th>{{ $index + 1 }}</th>
+                <td>{{ movement.createdAt | date:'short' }}</td>
+                <td>{{ movement.inventory.store.name }}</td>
+                <td>{{ movement.inventory.variant.sku }}</td>
+                <td>{{ movement.type }}</td>
+                <td>{{ movement.quantity }}</td>
+                <td>{{ movement.note || '-' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </fieldset>
   </div>
 </div>
