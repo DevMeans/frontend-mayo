@@ -1,0 +1,114 @@
+<div class="flex flex-col gap-5">
+  <div>
+    <p class="text-sm text-gray-500 mb-1">Admin Dashboard</p>
+    <h1 class="text-2xl font-bold mb-4">Gestión de tiendas y almacenes</h1>
+  </div>
+
+  <div>
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">Filtros</legend>
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="join w-full lg:w-auto">
+          <input type="text" class="input join-item w-full lg:w-80" placeholder="Buscar nombre, código o dirección" (keyup)="onSearch(txtvalue.value)" #txtvalue />
+          <button class="btn join-item btn-primary" (click)="onSearch(txtvalue.value)">Buscar</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-4">
+          <select class="select" [value]="filterType()" (change)="setFilterType($any($event.target).value)">
+            <option value="">Todos los tipos</option>
+            <option value="STORE">Tienda</option>
+            <option value="WAREHOUSE">Almacén</option>
+          </select>
+          <label class="cursor-pointer label">
+            <span class="label-text">Incluir inactivos</span>
+            <input type="checkbox" class="checkbox ml-2" [checked]="includeInactive()" (change)="toggleIncludeInactive($event.target.checked)" />
+          </label>
+          <button class="btn btn-outline btn-secondary" (click)="loadStores()">Actualizar</button>
+          <button class="btn btn-primary" (click)="openModal()">Agregar tienda/almacén</button>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="overflow-x-auto rounded-lg border border-base-300">
+    <table class="table w-full">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nombre</th>
+          <th>Código</th>
+          <th>Tipo</th>
+          <th>Dirección</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (store of storesData(); track store.id) {
+          <tr>
+            <th>{{ $index + 1 }}</th>
+            <td>{{ store.name }}</td>
+            <td>{{ store.code }}</td>
+            <td>{{ store.type }}</td>
+            <td>{{ store.address ?? '—' }}</td>
+            <td>
+              @if (store.isActive) {
+                <span class="badge badge-success">Activo</span>
+              } @else {
+                <span class="badge badge-error">Inactivo</span>
+              }
+            </td>
+            <td>
+              <div class="flex flex-wrap gap-2">
+                <button class="btn btn-sm btn-outline btn-info" (click)="openModalForEdit(store)">Editar</button>
+                @if (store.isActive) {
+                  <button class="btn btn-sm btn-outline btn-error" (click)="deactivateStore(store)">Desactivar</button>
+                } @else {
+                  <button class="btn btn-sm btn-outline btn-disabled" disabled>Desactivado</button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <dialog id="store-modal" class="modal">
+    <form method="dialog" class="modal-box max-w-2xl">
+      <h3 class="font-bold text-lg">{{ formTitle }}</h3>
+      <p class="py-2">Completa los datos para crear o editar la tienda/almacén.</p>
+
+      <div class="grid gap-4">
+        <label class="flex flex-col gap-2">
+          <span>Nombre</span>
+          <input type="text" class="input w-full" [value]="name()" (input)="name.set($any($event.target).value)" placeholder="Nombre de la tienda" />
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span>Código</span>
+          <input type="text" class="input w-full" [value]="code()" (input)="code.set($any($event.target).value)" placeholder="Código único" />
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span>Tipo</span>
+          <select class="select w-full" [value]="type()" (change)="type.set($any($event.target).value)">
+            <option value="STORE">Tienda</option>
+            <option value="WAREHOUSE">Almacén</option>
+          </select>
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span>Dirección</span>
+          <textarea class="textarea w-full" [value]="address()" (input)="address.set($any($event.target).value)" placeholder="Dirección de la tienda o almacén"></textarea>
+        </label>
+      </div>
+
+      <div class="modal-action pt-3">
+        <button type="button" class="btn btn-ghost" (click)="closeModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="!canSave" (click)="saveStore()">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <app-alert></app-alert>
+</div>

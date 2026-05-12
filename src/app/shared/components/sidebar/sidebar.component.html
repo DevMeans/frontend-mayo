@@ -84,6 +84,47 @@
     </a>
   </li>
 
+  <!-- List item Stores -->
+  <li>
+    <a routerLink="/admin/stores" routerLinkActive="active" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Stores">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        stroke-width="2"
+        fill="none"
+        stroke="currentColor"
+        class="my-1.5 inline-block size-4"
+      >
+        <path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"></path>
+        <path d="M9 22V12h6v10"></path>
+      </svg>
+      <span class="is-drawer-close:hidden">Stores</span>
+    </a>
+  </li>
+
+  <!-- List item Inventory -->
+  <li>
+    <a routerLink="/admin/inventory" routerLinkActive="active" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Inventory">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        stroke-width="2"
+        fill="none"
+        stroke="currentColor"
+        class="my-1.5 inline-block size-4"
+      >
+        <path d="M4 4h16v16H4z"></path>
+        <path d="M8 4v16"></path>
+        <path d="M16 4v16"></path>
+      </svg>
+      <span class="is-drawer-close:hidden">Inventory</span>
+    </a>
+  </li>
+
   <!-- List item Users (Admin only) -->
   @if (authService.isAdmin()) {
     <li>

@@ -1,0 +1,160 @@
+<div class="flex flex-col justify-center gap-5">
+  <div>
+    <p class="text-sm text-gray-500 mb-1">Admin Dashboard</p>
+    <h1 class="text-2xl font-bold mb-4">Inventory Admin Page</h1>
+  </div>
+
+  <div>
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">Inventory Filters</legend>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <div class="grid gap-4">
+          <div class="join w-full lg:w-full">
+            <input type="text" class="input join-item w-full" placeholder="Buscar SKU, producto, tienda, color o talla" (keyup)="onSearch(txtvalue.value)" #txtvalue />
+            <button class="btn join-item btn-primary" (click)="onSearch(txtvalue.value)">Buscar</button>
+          </div>
+          <div class="grid gap-4 lg:grid-cols-2">
+            <label class="flex flex-col gap-2">
+              <span class="label-text">Buscar por SKU exacto</span>
+              <input type="text" class="input w-full" [value]="skuFilter()" (input)="setSkuFilter($any($event.target).value)" placeholder="SKU exacto" />
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="label-text">Tienda</span>
+              <select class="select w-full" [value]="selectedStoreId()" (change)="setStoreId($any($event.target).value)">
+                <option value="">Todas las tiendas</option>
+                @for (store of storeOptions(); track store.id) {
+                  <option value="{{ store.id }}">{{ store.name }} ({{ store.code }})</option>
+                }
+              </select>
+            </label>
+          </div>
+          <div class="grid gap-4 lg:grid-cols-3">
+            <label class="flex flex-col gap-2">
+              <span class="label-text">Producto</span>
+              <select class="select w-full" [value]="selectedProductId()" (change)="setProductId($any($event.target).value)">
+                <option value="">Todos los productos</option>
+                @for (product of productOptions(); track product.id) {
+                  <option value="{{ product.id }}">{{ product.name }}</option>
+                }
+              </select>
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="label-text">Talla</span>
+              <select class="select w-full" [value]="selectedSizeId()" (change)="setSizeId($any($event.target).value)">
+                <option value="">Todas las tallas</option>
+                @for (size of sizeOptions(); track size.id) {
+                  <option value="{{ size.id }}">{{ size.name }}</option>
+                }
+              </select>
+            </label>
+            <label class="flex flex-col gap-2">
+              <span class="label-text">Color</span>
+              <select class="select w-full" [value]="selectedColorId()" (change)="setColorId($any($event.target).value)">
+                <option value="">Todos los colores</option>
+                @for (color of colorOptions(); track color.id) {
+                  <option value="{{ color.id }}">{{ color.name }}</option>
+                }
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="grid gap-4">
+          <div class="grid gap-4 lg:grid-cols-2">
+            <label class="cursor-pointer label justify-start gap-2">
+              <input type="checkbox" class="checkbox" [checked]="includeZero()" (change)="toggleIncludeZero($event.target.checked)" />
+              <span class="label-text">Mostrar stock cero</span>
+            </label>
+            <label class="cursor-pointer label justify-start gap-2">
+              <input type="checkbox" class="checkbox" [checked]="reservedOnly()" (change)="toggleReservedOnly($event.target.checked)" />
+              <span class="label-text">Solo reservados</span>
+            </label>
+          </div>
+          <label class="flex flex-col gap-2">
+            <span class="label-text">Stock disponible menor o igual a</span>
+            <input type="number" class="input w-full" min="0" [value]="lowStockThreshold()" (input)="setLowStockThreshold($any($event.target).value)" placeholder="Ej. 5" />
+          </label>
+          <div class="flex flex-wrap items-center gap-3">
+            <button class="btn btn-outline btn-secondary" (click)="refresh()">Actualizar</button>
+            <button class="btn btn-ghost btn-sm" (click)="resetFilters()">Limpiar filtros</button>
+          </div>
+          <div class="rounded-lg bg-base-100 p-4 text-sm text-base-content shadow-sm">
+            <p class="font-medium">Filtros activos</p>
+            <p>Mostrando <strong>{{ filteredCount }}</strong> de <strong>{{ totalCount }}</strong> inventarios.</p>
+            <p class="text-xs text-gray-500">Usa búsqueda general o selecciona tienda, producto y talla para refinar.</p>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <div>
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">Crear inventario</legend>
+      <div class="grid gap-4 lg:grid-cols-4">
+        <label class="flex flex-col gap-2">
+          <span class="label-text">Tienda</span>
+          <select class="select w-full" [value]="selectedStoreId()" (change)="setStoreId($any($event.target).value)">
+            <option value="">Selecciona una tienda</option>
+            @for (store of storeOptions(); track store.id) {
+              <option value="{{ store.id }}">{{ store.name }} ({{ store.code }})</option>
+            }
+          </select>
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span class="label-text">Variante</span>
+          <select class="select w-full" [value]="selectedVariantId()" (change)="setVariantId($any($event.target).value)">
+            <option value="">Selecciona una variante</option>
+            @for (variant of variantOptions(); track variant.variantId) {
+              <option value="{{ variant.variantId }}">{{ variant.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="flex flex-col gap-2">
+          <span class="label-text">Cantidad</span>
+          <input type="number" class="input w-full" min="1" [value]="createQuantity()" (input)="setCreateQuantity($any($event.target).value)" />
+        </label>
+
+        <div class="flex items-end">
+          <button class="btn btn-primary w-full" [disabled]="!canCreateInventory" (click)="createInventory()">
+            Crear inventario
+          </button>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="overflow-x-auto rounded-lg border border-base-300">
+    <table class="table table-sm table-zebra w-full bg-base-100">
+      <thead class="bg-base-200 text-base-content">
+        <tr>
+          <th class="w-12">#</th>
+          <th>Store</th>
+          <th>SKU</th>
+          <th>Product</th>
+          <th>Color</th>
+          <th>Size</th>
+          <th>Stock</th>
+          <th>Reserved</th>
+          <th>Available</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of ListaInventarios(); track item.id) {
+          <tr>
+            <th>{{ $index + 1 }}</th>
+            <td>{{ item.store.name }}</td>
+            <td>{{ item.variant.sku }}</td>
+            <td>{{ item.variant.product.name }}</td>
+            <td>{{ item.variant.color.name }}</td>
+            <td>{{ item.variant.size.name }}</td>
+            <td>{{ item.stock }}</td>
+            <td>{{ item.reservedStock }}</td>
+            <td>{{ computeAvailableStock(item) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

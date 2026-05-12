@@ -23,6 +23,14 @@ export const adminDashboardRoute: Routes = [
         loadComponent: () => import('./pages/product-admin-page/product-admin-page.component').then(m => m.ProductAdminPageComponent)
       },
       {
+        path: 'inventory',
+        loadComponent: () => import('./pages/inventory-admin-page/inventory-admin-page.component').then(m => m.InventoryAdminPageComponent)
+      },
+      {
+        path: 'stores',
+        loadComponent: () => import('./pages/store-admin-page/store-admin-page.component').then(m => m.StoreAdminPageComponent)
+      },
+      {
         path: 'users',
         loadComponent: () => import('./pages/user-management/user-management').then(m => m.UserManagementComponent)
       },
