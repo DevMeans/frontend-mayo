@@ -9,7 +9,7 @@ import { AlertService } from '../../../shared/services/alert.service';
 import { StoreService } from '../../../store/services/store.service';
 import { ProductService } from '../../../product/services/product.service';
 import { Store } from '../../../store/interfaces/store.interface';
-import { Product, ProductVariant } from '../../../product/interfaces/product.interface';
+import { Product } from '../../../product/interfaces/product.interface';
 
 @Component({
   selector: 'app-inventory-admin-page',
@@ -26,16 +26,19 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
 
   inventoryData = signal<Inventory[]>([]);
   storeOptions = signal<Store[]>([]);
-  variantOptions = signal<Array<{ variantId: number; label: string }>>([]);
   selectedStoreId = signal<number | null>(null);
   selectedProductId = signal<number | null>(null);
   selectedSizeId = signal<number | null>(null);
   selectedColorId = signal<number | null>(null);
-  selectedVariantId = signal<number | null>(null);
-  createQuantity = signal<number>(0);
-  movementType = signal<'IN' | 'OUT' | 'ADJUSTMENT' | 'RESERVED' | 'UNRESERVED'>('IN');
+  movementQuantity = signal<number>(0);
+  movementType = signal<'IN' | 'OUT' | 'ADJUSTMENT'>('IN');
   movementNote = signal<string>('');
-  creatingInventory = signal<boolean>(false);
+  movementErrorMessage = signal<string>('');
+  creatingMovement = signal<boolean>(false);
+  showAdvancedFilters = signal<boolean>(false);
+  movementDrawerOpen = signal<boolean>(false);
+  historyMode = signal<boolean>(false);
+  selectedInventory = signal<Inventory | null>(null);
   movementsData = signal<any[]>([]);
   searchSubject = new Subject<string>();
   searchParam = signal<string>('');
@@ -78,12 +81,20 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     return this.inventoryData().length;
   }
 
-  get canCreateInventory() {
-    return !!this.selectedStoreId() && !!this.selectedVariantId() && this.createQuantity() > 0 && !this.creatingInventory();
+  get canSaveMovement() {
+    return !!this.selectedInventory() && this.movementQuantity() > 0 && !this.creatingMovement();
   }
 
-  get recentMovements() {
-    return this.movementsData().slice(0, 10);
+  get movementDrawerTitle() {
+    return this.historyMode() ? 'Historial de movimientos' : 'Registrar movimiento';
+  }
+
+  get selectedInventoryMovements() {
+    const selected = this.selectedInventory();
+    if (!selected) {
+      return this.movementsData();
+    }
+    return this.movementsData().filter((movement) => movement.inventory?.id === selected.id);
   }
 
   private getFilteredInventories(): Inventory[] {
@@ -138,7 +149,6 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadInventories();
     this.loadStoreOptions();
-    this.loadVariantOptions();
     this.loadMovements();
     this.searchSubject.pipe(debounceTime(400)).subscribe((param) => {
       this.searchParam.set(param);
@@ -185,62 +195,78 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadVariantOptions() {
-    this.productService.getProducts({ skip: 1, take: 100, isActive: true }).subscribe({
-      next: (response) => {
-        const variants = response.data.flatMap((product: Product) => {
-          const productName = product.name;
-          return (product.variants ?? []).map((variant: any) => {
-            const label = `${productName} - ${variant.sku ?? 'Sin SKU'} - ${variant.price ?? ''}`;
-            return {
-              variantId: variant.id,
-              label,
-            };
-          });
-        });
-        this.variantOptions.set(variants);
-      },
-      error: (error: unknown) => {
-        console.error('Error al cargar variantes:', error);
-        this.alertService.show('Error al cargar variantes de productos', 'error', 3000);
-      }
-    });
+  openMovementDrawer(inventory: Inventory, type: 'IN' | 'OUT' | 'ADJUSTMENT') {
+    this.selectedInventory.set(inventory);
+    this.movementType.set(type);
+    this.movementQuantity.set(0);
+    this.movementNote.set('');
+    this.movementErrorMessage.set('');
+    this.historyMode.set(false);
+    this.movementDrawerOpen.set(true);
   }
 
-  createInventory() {
-    if (!this.selectedStoreId() || !this.selectedVariantId() || this.createQuantity() <= 0) {
-      this.alertService.show('Selecciona tienda, variante y cantidad válida', 'warning', 3000);
+  openHistoryDrawer(inventory?: Inventory) {
+    this.selectedInventory.set(inventory ?? null);
+    this.movementErrorMessage.set('');
+    this.historyMode.set(true);
+    this.movementDrawerOpen.set(true);
+    if (!this.movementsData().length) {
+      this.loadMovements();
+    }
+  }
+
+  showTransferNotice() {
+    this.alertService.show('Transferencias pendiente de implementación', 'info', 3000);
+  }
+
+  closeMovementDrawer() {
+    this.movementDrawerOpen.set(false);
+    this.selectedInventory.set(null);
+    this.historyMode.set(false);
+    this.movementErrorMessage.set('');
+  }
+
+  saveMovement() {
+    const inventory = this.selectedInventory();
+    if (!inventory || this.movementQuantity() <= 0) {
+      this.alertService.show('Selecciona un inventario y una cantidad válida', 'warning', 3000);
       return;
     }
 
-    this.creatingInventory.set(true);
+    this.movementErrorMessage.set('');
+    this.creatingMovement.set(true);
 
     this.inventoryService.createMovement({
-      storeId: this.selectedStoreId()!,
-      variantId: this.selectedVariantId()!,
-      quantity: this.createQuantity(),
+      storeId: inventory.store.id,
+      variantId: inventory.variant.id,
+      quantity: this.movementQuantity(),
       type: this.movementType(),
       note: this.movementNote() || undefined,
     }).subscribe({
       next: () => {
         this.alertService.show('Movimiento registrado correctamente', 'success', 3000);
-        this.createQuantity.set(0);
-        this.selectedStoreId.set(null);
-        this.selectedVariantId.set(null);
-        this.movementNote.set('');
+        this.resetMovementForm();
+        this.closeMovementDrawer();
         this.loadInventories();
         this.loadMovements();
       },
       error: (error: unknown) => {
         const message = this.getErrorMessage(error, 'Error al registrar movimiento');
         console.error('Error al registrar movimiento:', error);
-        this.alertService.show(message, 'error', 3000);
-        this.creatingInventory.set(false);
+        this.movementErrorMessage.set(message);
+        this.creatingMovement.set(false);
       },
       complete: () => {
-        this.creatingInventory.set(false);
+        this.creatingMovement.set(false);
       }
     });
+  }
+
+  private resetMovementForm() {
+    this.movementQuantity.set(0);
+    this.movementNote.set('');
+    this.movementType.set('IN');
+    this.selectedInventory.set(null);
   }
 
   private getErrorMessage(error: unknown, fallback: string) {
@@ -259,13 +285,8 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     this.selectedStoreId.set(Number.isFinite(id) ? id : null);
   }
 
-  setVariantId(value: string) {
-    const id = Number(value);
-    this.selectedVariantId.set(Number.isFinite(id) ? id : null);
-  }
-
   setMovementType(value: string) {
-    const type = value as 'IN' | 'OUT' | 'ADJUSTMENT' | 'RESERVED' | 'UNRESERVED';
+    const type = value as 'IN' | 'OUT' | 'ADJUSTMENT';
     this.movementType.set(type);
   }
 
@@ -273,9 +294,13 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     this.movementNote.set(value);
   }
 
-  setCreateQuantity(value: string) {
+  setMovementQuantity(value: string) {
     const quantity = Number(value);
-    this.createQuantity.set(Number.isFinite(quantity) ? quantity : 0);
+    this.movementQuantity.set(Number.isFinite(quantity) ? quantity : 0);
+  }
+
+  toggleAdvancedFilters() {
+    this.showAdvancedFilters.update((value) => !value);
   }
 
   refresh() {
