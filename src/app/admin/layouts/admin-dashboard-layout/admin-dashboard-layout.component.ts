@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterOutlet, Router } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
-import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../../auth/auth.service';
 
 @Component({
   selector: 'app-admin-dashboard-layout',
@@ -11,27 +11,20 @@ import { HttpClient } from '@angular/common/http';
 })
 export class AdminDashboardLayoutComponent implements OnInit {
 
-  constructor(private router: Router, private http: HttpClient) { }
+  constructor(private authService: AuthService) { }
 
   ngOnInit() {
   }
 
   logout() {
-    // Call logout endpoint if needed
-    this.http.post('http://localhost:3000/api/auth/logout', {})
-      .subscribe({
-        next: () => {
-          this.clearSession();
-        },
-        error: () => {
-          this.clearSession();
-        }
-      });
+    this.authService.logout();
   }
 
-  private clearSession() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    this.router.navigate(['/login']);
+  get currentUser() {
+    return this.authService.getCurrentUser();
+  }
+
+  get isAdmin() {
+    return this.authService.isAdmin();
   }
 }

@@ -1,0 +1,170 @@
+<dialog id="user-modal" class="modal">
+  <div class="modal-box w-full max-w-2xl">
+    @if (isEditing()) {
+      <h3 class="text-lg font-bold">Editar Usuario</h3>
+      <p class="py-2 text-sm text-gray-600">Actualiza los datos del usuario</p>
+    } @else {
+      <h3 class="text-lg font-bold">Crear Nuevo Usuario</h3>
+      <p class="py-2 text-sm text-gray-600">Agrega un nuevo usuario al sistema</p>
+    }
+
+    <form [formGroup]="userForm" (ngSubmit)="saveUser()" class="py-4">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <!-- First Name -->
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text font-medium">Nombre</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Ingresa el nombre"
+            class="input input-bordered w-full"
+            formControlName="firstName"
+            [class.input-error]="submitted && userForm.get('firstName')?.invalid"
+          />
+          @if (submitted && userForm.get('firstName')?.invalid) {
+            <label class="label">
+              <span class="label-text-alt text-error">
+                @if (userForm.get('firstName')?.errors?.['required']) {
+                  Campo requerido
+                } @else if (userForm.get('firstName')?.errors?.['minlength']) {
+                  Mínimo 2 caracteres
+                }
+              </span>
+            </label>
+          }
+        </div>
+
+        <!-- Last Name -->
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text font-medium">Apellido</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Ingresa el apellido"
+            class="input input-bordered w-full"
+            formControlName="lastName"
+            [class.input-error]="submitted && userForm.get('lastName')?.invalid"
+          />
+          @if (submitted && userForm.get('lastName')?.invalid) {
+            <label class="label">
+              <span class="label-text-alt text-error">
+                @if (userForm.get('lastName')?.errors?.['required']) {
+                  Campo requerido
+                } @else if (userForm.get('lastName')?.errors?.['minlength']) {
+                  Mínimo 2 caracteres
+                }
+              </span>
+            </label>
+          }
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-control w-full mb-4">
+        <label class="label">
+          <span class="label-text font-medium">Correo Electrónico</span>
+        </label>
+        <input
+          type="email"
+          placeholder="usuario@ejemplo.com"
+          class="input input-bordered w-full"
+          formControlName="email"
+          [class.input-error]="submitted && userForm.get('email')?.invalid"
+        />
+        @if (submitted && userForm.get('email')?.invalid) {
+          <label class="label">
+            <span class="label-text-alt text-error">
+              @if (userForm.get('email')?.errors?.['required']) {
+                Campo requerido
+              } @else if (userForm.get('email')?.errors?.['email']) {
+                Ingresa un correo válido
+              }
+            </span>
+          </label>
+        }
+      </div>
+
+      <!-- Password -->
+      @if (!isEditing()) {
+        <div class="form-control w-full mb-4">
+          <label class="label">
+            <span class="label-text font-medium">Contraseña</span>
+          </label>
+          <input
+            type="password"
+            placeholder="Mínimo 6 caracteres"
+            class="input input-bordered w-full"
+            formControlName="password"
+            [class.input-error]="submitted && userForm.get('password')?.invalid"
+          />
+          @if (submitted && userForm.get('password')?.invalid) {
+            <label class="label">
+              <span class="label-text-alt text-error">
+                @if (userForm.get('password')?.errors?.['required']) {
+                  Campo requerido
+                } @else if (userForm.get('password')?.errors?.['minlength']) {
+                  Mínimo 6 caracteres
+                }
+              </span>
+            </label>
+          }
+        </div>
+      }
+
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <!-- Role -->
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text font-medium">Rol</span>
+          </label>
+          <select
+            class="select select-bordered w-full"
+            formControlName="roleId"
+            [class.select-error]="submitted && userForm.get('roleId')?.invalid"
+          >
+            <option value="" disabled>Selecciona un rol</option>
+            @for (role of roles; track role.id) {
+              <option value="{{ role.id }}">{{ role.name }}</option>
+            }
+          </select>
+          @if (submitted && userForm.get('roleId')?.invalid) {
+            <label class="label">
+              <span class="label-text-alt text-error">Selecciona un rol</span>
+            </label>
+          }
+        </div>
+
+        <!-- Status -->
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text font-medium">Estado</span>
+          </label>
+          <select class="select select-bordered w-full" formControlName="isActive">
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-action">
+        <button type="button" class="btn btn-ghost" (click)="closeModal()" [disabled]="isLoading">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="isLoading || userForm.invalid">
+          @if (isLoading) {
+            Guardando...
+          } @else if (isEditing()) {
+            Actualizar Usuario
+          } @else {
+            Crear Usuario
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button (click)="closeModal()">cerrar</button>
+  </form>
+</dialog>

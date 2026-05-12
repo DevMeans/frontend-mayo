@@ -26,7 +26,13 @@
         <div class="px-4">Panel de Administración</div>
       </div>
       <div class="flex-1"></div>
-      <button class="btn btn-ghost" (click)="logout()">Cerrar Sesión</button>
+      <div class="flex items-center gap-4">
+        <span class="text-sm">
+          {{ currentUser?.firstName }} {{ currentUser?.lastName }}
+          <span class="badge badge-primary ml-2">{{ currentUser?.role }}</span>
+        </span>
+        <button class="btn btn-ghost" (click)="logout()">Cerrar Sesión</button>
+      </div>
     </nav>
     <!-- Page content here -->
     <div class="p-4">

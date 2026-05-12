@@ -1,0 +1,134 @@
+<div class="flex flex-col justify-center gap-5">
+  <app-alert></app-alert>
+
+  <div>
+    <p class="text-sm text-gray-500 mb-1">Admin Dashboard</p>
+    <h1 class="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
+  </div>
+
+  <div>
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+      <legend class="fieldset-legend">Filtros</legend>
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="join w-full lg:w-auto">
+          <input
+            type="text"
+            class="input join-item w-full"
+            placeholder="Buscar por nombre o correo"
+            [(ngModel)]="searchText"
+          />
+          <button class="btn join-item btn-primary">Buscar</button>
+        </div>
+        <div class="flex items-center gap-4">
+          <label class="cursor-pointer label">
+            <span class="label-text">Activos</span>
+            <input
+              type="checkbox"
+              class="checkbox ml-2"
+              [checked]="activeChecked"
+              (change)="toggleActive($event.target.checked)"
+            />
+          </label>
+          <label class="cursor-pointer label">
+            <span class="label-text">Inactivos</span>
+            <input
+              type="checkbox"
+              class="checkbox ml-2"
+              [checked]="inactiveChecked"
+              (change)="toggleInactive($event.target.checked)"
+            />
+          </label>
+        </div>
+        @if (authService.isAdmin()) {
+          <div>
+            <button class="btn btn-primary" (click)="openModal()" [disabled]="isLoadingRoles">
+              Agregar Usuario
+            </button>
+          </div>
+        }
+        @if (isLoadingRoles) {}
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead class="">
+        <tr>
+          <th class="w-12">N°</th>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (isLoadingUsers) {
+          <tr class="hover">
+            <td colspan="6" class="text-center py-8">
+              <span class="loading loading-spinner loading-md"></span>
+              <p class="mt-2">Cargando usuarios...</p>
+            </td>
+          </tr>
+        } @else if (getFilteredUsers().length === 0) {
+          <tr class="hover">
+            <td colspan="6" class="text-center py-8 text-base-content/60">
+              No hay usuarios disponibles
+            </td>
+          </tr>
+        } @else {
+          @for (user of getFilteredUsers(); track user.id; let idx = $index) {
+            <tr class="hover">
+              <th class="text-base-content/70">{{ idx + 1 }}</th>
+              <td>
+                <div class="font-medium">{{ user.firstName }} {{ user.lastName }}</div>
+              </td>
+              <td class="text-sm opacity-75">{{ user.email }}</td>
+              <td>
+                <span
+                  class="badge gap-1 text-xs"
+                  [class.badge-primary]="user.role.name === 'ADMIN'"
+                  [class.badge-secondary]="user.role.name === 'USER'"
+                >
+                  {{ user.role.name }}
+                </span>
+              </td>
+              <td>
+                @if (user.isActive) {
+                  <span class="badge badge-success gap-1 text-xs">Activo</span>
+                } @else {
+                  <span class="badge badge-error gap-1 text-xs">Inactivo</span>
+                }
+              </td>
+              <td>
+                <div class="flex gap-1 justify-center">
+                  @if (authService.isAdmin()) {
+                    <button
+                      class="btn btn-xs btn-ghost"
+                      title="Editar usuario"
+                      (click)="editUser(user)"
+                    >
+                      ✏️
+                    </button>
+                    @if (user.id !== authService.getCurrentUser()?.id) {
+                      <button
+                        class="btn btn-xs btn-ghost text-error hover:bg-error/10"
+                        title="Eliminar usuario"
+                        (click)="deleteUser(user)"
+                      >
+                        🗑️
+                      </button>
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-user-modal [roles]="roles" (userSaved)="onUserSaved($event)"></app-user-modal>
+</div>

@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-login',
@@ -17,7 +17,7 @@ export class Login {
 
   constructor(
     private fb: FormBuilder,
-    private http: HttpClient,
+    private authService: AuthService,
     private router: Router
   ) {
     this.loginForm = this.fb.group({
@@ -33,18 +33,16 @@ export class Login {
 
       const { email, password } = this.loginForm.value;
 
-      this.http.post('http://localhost:3000/api/auth/login', { email, password })
-        .subscribe({
-          next: (response: any) => {
-            localStorage.setItem('token', response.token);
-            localStorage.setItem('user', JSON.stringify(response.user));
-            this.router.navigate(['/admin']);
-          },
-          error: (error) => {
-            this.errorMessage = error.error.message || 'Error al iniciar sesión';
-            this.isLoading = false;
-          }
-        });
+      this.authService.login(email, password).subscribe({
+        next: (response: any) => {
+          this.authService.setSession(response.token, response.user);
+          this.router.navigate(['/admin']);
+        },
+        error: (error) => {
+          this.errorMessage = error.error.message || 'Error al iniciar sesión';
+          this.isLoading = false;
+        }
+      });
     }
   }
 

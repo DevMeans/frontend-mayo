@@ -83,4 +83,30 @@
       <span class="is-drawer-close:hidden">Products</span>
     </a>
   </li>
+
+  <!-- List item Users (Admin only) -->
+  @if (authService.isAdmin()) {
+    <li>
+      <a routerLink="/admin/users" routerLinkActive="active" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Users">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          stroke-width="2"
+          fill="none"
+          stroke="currentColor"
+          class="my-1.5 inline-block size-4"
+        >
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M22 2l-1 1"></path>
+          <path d="M22 8l-1-1"></path>
+          <path d="M16 2l1 1"></path>
+          <path d="M16 8l1-1"></path>
+        </svg>
+        <span class="is-drawer-close:hidden">Users</span>
+      </a>
+    </li>
+  }
 </ul>
