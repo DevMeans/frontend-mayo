@@ -1,10 +1,22 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, computed, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { OrderService } from '../services/order.service';
 import { StoreService } from '../../store/services/store.service';
+
+type OrdersFilters = {
+  status?: string;
+  storeId?: number;
+  startDate?: string;
+  endDate?: string;
+};
+
+type OrdersQuery = OrdersFilters & {
+  page: number;
+  limit: number;
+};
 
 @Component({
   selector: 'app-orders-list',
@@ -14,8 +26,50 @@ import { StoreService } from '../../store/services/store.service';
   imports: [CommonModule, FormsModule, ReactiveFormsModule]
 })
 export class OrdersListComponent implements OnInit {
-  orders: any[] = [];
-  stores: any[] = [];
+  private readonly appliedFilters = signal<OrdersFilters>({});
+  readonly currentPage = signal(1);
+  readonly pageSize = 10;
+
+  private readonly ordersQuery = computed<OrdersQuery>(() => ({
+    page: this.currentPage(),
+    limit: this.pageSize,
+    ...this.appliedFilters()
+  }));
+
+  private readonly storesResource = rxResource<any[], void>({
+    defaultValue: [],
+    stream: () => this.storeService.getStores({ skip: 1, take: 100 })
+  });
+
+  private readonly ordersResource = rxResource<any, OrdersQuery>({
+    defaultValue: {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: this.pageSize,
+        total: 0,
+        totalPages: 1
+      }
+    },
+    params: () => this.ordersQuery(),
+    stream: ({ params }) => this.orderService.listOrders(params)
+  });
+
+  readonly stores = computed<any[]>(() => this.normalizeStores(this.storesResource.value()));
+  readonly orders = computed<any[]>(() => this.normalizeOrders(this.ordersResource.value()));
+  readonly totalOrders = computed<number>(() => {
+    const response = this.ordersResource.value();
+    const pagination = response?.pagination || {};
+    return Number(pagination?.total || this.orders().length || 0);
+  });
+  readonly totalPages = computed<number>(() => {
+    const response = this.ordersResource.value();
+    const pagination = response?.pagination || {};
+    return Math.max(1, Number(pagination?.totalPages || 1));
+  });
+  readonly loading = computed<boolean>(() => this.ordersResource.isLoading());
+  readonly loadError = computed<string>(() => this.extractOrderErrorMessage(this.ordersResource.error()));
+
   readonly statusOptions = [
     { value: '', label: 'Todos los estados' },
     { value: 'PENDING', label: 'Pendiente' },
@@ -29,14 +83,6 @@ export class OrdersListComponent implements OnInit {
   ];
 
   filterForm!: FormGroup;
-  loadError = '';
-
-  currentPage = 1;
-  pageSize = 10;
-  totalPages = 1;
-  totalOrders = 0;
-
-  loading = false;
   selectedOrder: any = null;
   showDetail = false;
 
@@ -71,8 +117,6 @@ export class OrdersListComponent implements OnInit {
 
   ngOnInit() {
     this.initializeForm();
-    this.loadStores();
-    this.loadOrders();
   }
 
   initializeForm() {
@@ -84,68 +128,96 @@ export class OrdersListComponent implements OnInit {
     });
   }
 
-  loadStores() {
-    this.storeService.getStores({ skip: 1, take: 100 }).subscribe({
-      next: (storesResponse: any) => {
-        const stores = Array.isArray(storesResponse)
-          ? storesResponse
-          : (Array.isArray(storesResponse?.data)
-            ? storesResponse.data
-            : (Array.isArray(storesResponse?.value)
-              ? storesResponse.value
-              : (Array.isArray(storesResponse?.result) ? storesResponse.result : [])));
-        this.stores = stores;
-      },
-      error: () => {
-        this.stores = [];
-      }
-    });
-  }
-
   loadOrders() {
-    this.loading = true;
-    this.loadError = '';
+    const startDate = this.toLocalDateBoundaryIso(this.filterForm.get('startDate')?.value, false);
+    const endDate = this.toLocalDateBoundaryIso(this.filterForm.get('endDate')?.value, true);
 
-    const filters: any = {
-      page: this.currentPage,
-      limit: this.pageSize,
+    const filters: OrdersFilters = {
       status: this.filterForm.get('status')?.value || undefined,
       storeId: this.filterForm.get('storeId')?.value ? Number(this.filterForm.get('storeId')?.value) : undefined,
-      startDate: this.filterForm.get('startDate')?.value || undefined,
-      endDate: this.filterForm.get('endDate')?.value || undefined
+      startDate,
+      endDate
     };
 
-    Object.keys(filters).forEach((key) => {
-      if (filters[key] === undefined || filters[key] === null || filters[key] === '') {
-        delete filters[key];
+    this.appliedFilters.set(this.compactFilters(filters));
+  }
+
+  private toLocalDateBoundaryIso(value: unknown, endOfDay: boolean): string | undefined {
+    if (typeof value !== 'string' || !value.trim()) {
+      return undefined;
+    }
+
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) {
+      return value;
+    }
+
+    const year = Number(match[1]);
+    const monthIndex = Number(match[2]) - 1;
+    const day = Number(match[3]);
+
+    if (!Number.isInteger(year) || !Number.isInteger(monthIndex) || !Number.isInteger(day)) {
+      return value;
+    }
+
+    const date = endOfDay
+      ? new Date(year, monthIndex, day, 23, 59, 59, 999)
+      : new Date(year, monthIndex, day, 0, 0, 0, 0);
+
+    return date.toISOString();
+  }
+
+  private compactFilters(filters: OrdersFilters): OrdersFilters {
+    const nextFilters: OrdersFilters = {};
+    const entries = Object.entries(filters) as [keyof OrdersFilters, OrdersFilters[keyof OrdersFilters]][];
+    const writableFilters = nextFilters as Record<string, unknown>;
+
+    for (const [key, value] of entries) {
+      if (value !== undefined && value !== null && value !== '') {
+        writableFilters[key] = value;
       }
-    });
+    }
 
-    this.orderService
-      .listOrders(filters)
-      .pipe(finalize(() => { this.loading = false; }))
-      .subscribe({
-        next: (response: any) => {
-          this.orders = Array.isArray(response?.data)
-            ? response.data
-            : (Array.isArray(response) ? response : []);
+    return nextFilters;
+  }
 
-          const pagination = response?.pagination || {};
-          this.totalOrders = Number(pagination?.total || this.orders.length || 0);
-          this.totalPages = Math.max(1, Number(pagination?.totalPages || 1));
-        },
-        error: (error) => {
-          console.error('Error loading orders:', error);
-          this.orders = [];
-          this.totalOrders = 0;
-          this.totalPages = 1;
-          this.loadError = error?.error?.error || error?.error?.message || 'No se pudieron cargar las ordenes.';
-        }
-      });
+  private normalizeStores(storesResponse: any): any[] {
+    if (Array.isArray(storesResponse)) {
+      return storesResponse;
+    }
+    if (Array.isArray(storesResponse?.data)) {
+      return storesResponse.data;
+    }
+    if (Array.isArray(storesResponse?.value)) {
+      return storesResponse.value;
+    }
+    if (Array.isArray(storesResponse?.result)) {
+      return storesResponse.result;
+    }
+    return [];
+  }
+
+  private normalizeOrders(response: any): any[] {
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+    if (Array.isArray(response)) {
+      return response;
+    }
+    return [];
+  }
+
+  private extractOrderErrorMessage(error: unknown): string {
+    if (!error) {
+      return '';
+    }
+
+    const parsedError = error as any;
+    return parsedError?.error?.error || parsedError?.error?.message || parsedError?.message || 'No se pudieron cargar las ordenes.';
   }
 
   applyFilters() {
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadOrders();
   }
 
@@ -160,9 +232,8 @@ export class OrdersListComponent implements OnInit {
   }
 
   goToPage(page: number) {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      this.loadOrders();
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
     }
   }
 
@@ -182,7 +253,7 @@ export class OrdersListComponent implements OnInit {
 
     this.orderService.updateOrderStatus(order.id, newStatus).subscribe({
       next: () => {
-        this.loadOrders();
+        this.ordersResource.reload();
       },
       error: (error) => {
         alert(`Error: ${error?.error?.error || 'Error al actualizar'}`);

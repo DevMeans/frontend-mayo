@@ -99,6 +99,12 @@
       <button type="button" (click)="clearCart()" [disabled]="cart.length === 0">Vaciar</button>
     </header>
 
+    @if (remoteFulfillmentStoreId) {
+      <div class="remote-fulfillment-banner">
+        {{ getRemoteFulfillmentStoreLabel() }}
+      </div>
+    }
+
     @if (cart.length === 0) {
       <div class="empty-cart">
         Agrega productos para comenzar una venta.
@@ -235,11 +241,17 @@
                   type="button"
                   class="size-btn"
                   [class.active]="selectedSize === variant.sizeName"
-                  [disabled]="variant.availableStock === 0"
+                  [class.no-stock]="variant.availableStock === 0"
                   (click)="selectSize(variant.sizeName)"
                 >
                   {{ variant.sizeName }}
-                  <small>{{ variant.availableStock }} disp.</small>
+                  <small>
+                    @if (variant.availableStock > 0) {
+                      {{ variant.availableStock }} disp.
+                    } @else {
+                      Sin stock local
+                    }
+                  </small>
                 </button>
               }
             </div>
@@ -255,7 +267,37 @@
 
           @if (selectedVariant; as variant) {
             <div class="stock-info">
-              <p>Stock disponible: {{ variant.availableStock }} | Reservado: {{ variant.reservedStock }}</p>
+              @if (variant.availableStock > 0) {
+                <p>Stock disponible: {{ variant.availableStock }} | Reservado: {{ variant.reservedStock }}</p>
+              } @else {
+                <p>Sin stock en {{ getCurrentStoreName() }}.</p>
+              }
+            </div>
+          }
+
+          @if (selectedVariant?.availableStock === 0) {
+            <div class="remote-stock-panel">
+              <p class="remote-stock-title">Sugerencias de stock remoto</p>
+              @if (loadingRemoteStock) {
+                <p class="remote-stock-muted">Buscando disponibilidad en otras tiendas...</p>
+              } @else if (remoteStockSuggestions.length > 0) {
+                <div class="remote-stock-list">
+                  @for (suggestion of remoteStockSuggestions; track suggestion.storeId) {
+                    <button
+                      type="button"
+                      class="remote-stock-option"
+                      [class.active]="isRemoteStoreSelected(suggestion.storeId)"
+                      (click)="selectRemoteStoreForVariant(suggestion.storeId)"
+                    >
+                      <span>{{ suggestion.storeName }}</span>
+                      <strong>{{ suggestion.availableStock }} disp.</strong>
+                    </button>
+                  }
+                </div>
+                <p class="remote-stock-muted">Al confirmar pago se reservará desde la tienda seleccionada.</p>
+              } @else {
+                <p class="remote-stock-muted">No hay stock disponible en otras tiendas para esta variante.</p>
+              }
             </div>
           }
 
@@ -282,7 +324,7 @@
           type="button"
           class="btn-primary"
           (click)="addVariantToCart()"
-          [disabled]="!selectedVariant || selectedVariant.availableStock === 0"
+          [disabled]="!canAddSelectedVariant()"
         >
           Agregar al carrito
         </button>

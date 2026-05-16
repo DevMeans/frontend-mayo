@@ -19,7 +19,7 @@
         <label for="storeFilter">Tienda</label>
         <select id="storeFilter" formControlName="storeId" class="filter-input select select-bordered w-full">
           <option value="">Todas las tiendas</option>
-          @for (store of stores; track store.id) {
+          @for (store of stores(); track store.id) {
             <option [value]="store.id">{{ store.name }}</option>
           }
         </select>
@@ -43,23 +43,23 @@
   </div>
 
   <div class="table-section">
-    @if (loading) {
+    @if (loading()) {
       <div class="loading">Cargando ordenes...</div>
     }
 
-    @if (!loading && loadError) {
+    @if (!loading() && loadError()) {
       <div class="no-data">
-        {{ loadError }}
+        {{ loadError() }}
       </div>
     }
 
-    @if (!loading && !loadError && orders.length === 0) {
+    @if (!loading() && !loadError() && orders().length === 0) {
       <div class="no-data">
         No hay ordenes para los filtros aplicados.
       </div>
     }
 
-    @if (!loading && !loadError && orders.length > 0) {
+    @if (!loading() && !loadError() && orders().length > 0) {
       <table class="orders-table">
         <thead>
           <tr>
@@ -73,7 +73,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (order of orders; track order.id ?? order.code ?? $index) {
+          @for (order of orders(); track order.id ?? order.code ?? $index) {
             <tr class="order-row">
               <td class="code"><strong>{{ order.code }}</strong></td>
               <td>{{ order.clientName || order.clientEmail || "Sin cliente" }}</td>
@@ -97,17 +97,17 @@
     }
   </div>
 
-  @if (!loading && !loadError && orders.length > 0) {
+  @if (!loading() && !loadError() && orders().length > 0) {
     <div class="pagination">
-      <button type="button" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" class="pagination-btn">
+      <button type="button" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1" class="pagination-btn">
         Anterior
       </button>
 
       <div class="pagination-info">
-        Pagina {{ currentPage }} de {{ totalPages }} ({{ totalOrders }} ordenes)
+        Pagina {{ currentPage() }} de {{ totalPages() }} ({{ totalOrders() }} ordenes)
       </div>
 
-      <button type="button" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" class="pagination-btn">
+      <button type="button" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()" class="pagination-btn">
         Siguiente
       </button>
     </div>

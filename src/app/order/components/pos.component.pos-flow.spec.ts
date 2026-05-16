@@ -9,12 +9,14 @@ type MockOrderService = {
   createOrder: ReturnType<typeof vi.fn>;
   listOrders: ReturnType<typeof vi.fn>;
   getVariantStock: ReturnType<typeof vi.fn>;
+  getRemoteStock: ReturnType<typeof vi.fn>;
 };
 
 function buildComponent(options?: {
   createOrder$?: Observable<any>;
   listOrders$?: Observable<any>;
   getVariantStock$?: Observable<any>;
+  getRemoteStock$?: Observable<any>;
 }) {
   const productService = {
     getProducts: vi.fn(() => of({ data: [] }))
@@ -25,7 +27,8 @@ function buildComponent(options?: {
   const orderService: MockOrderService = {
     createOrder: vi.fn(() => options?.createOrder$ ?? of({ data: { code: 'ORD-TEST-001' } })),
     listOrders: vi.fn(() => options?.listOrders$ ?? of({ data: [] })),
-    getVariantStock: vi.fn(() => options?.getVariantStock$ ?? of({ data: [] }))
+    getVariantStock: vi.fn(() => options?.getVariantStock$ ?? of({ data: [] })),
+    getRemoteStock: vi.fn(() => options?.getRemoteStock$ ?? of({ data: [] }))
   };
   const authService = {
     getCurrentUser: vi.fn(() => ({ id: 1 }))
@@ -129,5 +132,51 @@ describe('PosComponent payment flow diagnostics', () => {
     expect(component.showPaymentDrawer).toBe(false);
     expect(component.toast?.type).toBe('info');
     expect(component.toast?.message).toContain('cerrado manualmente');
+  });
+
+  it('allows selecting a no-stock variant and loads remote stock suggestions', () => {
+    const { component, orderService } = buildComponent({
+      getRemoteStock$: of({
+        data: [
+          {
+            storeId: 2,
+            storeName: 'Tienda 2',
+            availableStock: 5,
+            reservedStock: 0
+          }
+        ]
+      })
+    });
+
+    component.openVariantSelector({
+      id: 50,
+      name: 'Polera test',
+      categoryName: 'Ropa',
+      imageUrl: null,
+      minPrice: 39.9,
+      totalAvailableStock: 0,
+      totalReservedStock: 0,
+      variants: [
+        {
+          id: 700,
+          sku: 'SKU-700',
+          barcode: null,
+          colorName: 'Negro',
+          colorHex: '#000000',
+          sizeName: 'M',
+          price: 39.9,
+          imageUrl: null,
+          availableStock: 0,
+          reservedStock: 0
+        }
+      ]
+    } as any);
+
+    component.selectSize('M');
+
+    expect(orderService.getRemoteStock).toHaveBeenCalledWith(700, 1);
+    expect(component.remoteStockSuggestions.length).toBe(1);
+    expect(component.isRemoteStoreSelected(2)).toBe(true);
+    expect(component.canAddSelectedVariant()).toBe(true);
   });
 });

@@ -11,6 +11,15 @@ import { ProductService } from '../../../product/services/product.service';
 import { Store } from '../../../store/interfaces/store.interface';
 import { Product } from '../../../product/interfaces/product.interface';
 
+interface InventoryVariantOption {
+  variantId: number;
+  sku: string;
+  productName: string;
+  colorName: string;
+  sizeName: string;
+  label: string;
+}
+
 @Component({
   selector: 'app-inventory-admin-page',
   templateUrl: './inventory-admin-page.component.html',
@@ -25,11 +34,15 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   private productService = inject(ProductService);
 
   inventoryData = signal<Inventory[]>([]);
+  productCatalog = signal<Product[]>([]);
   storeOptions = signal<Store[]>([]);
   selectedStoreId = signal<number | null>(null);
   selectedProductId = signal<number | null>(null);
   selectedSizeId = signal<number | null>(null);
   selectedColorId = signal<number | null>(null);
+  movementStoreId = signal<number | null>(null);
+  movementVariantId = signal<number | null>(null);
+  movementVariantSearch = signal<string>('');
   movementQuantity = signal<number>(0);
   movementType = signal<'IN' | 'OUT' | 'ADJUSTMENT'>('IN');
   movementNote = signal<string>('');
@@ -71,6 +84,56 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     return Array.from(colors.entries()).map(([id, name]) => ({ id, name }));
   });
 
+  variantCatalog = computed<InventoryVariantOption[]>(() => {
+    const options: InventoryVariantOption[] = [];
+
+    this.productCatalog().forEach((product) => {
+      (product.variants ?? []).forEach((variant) => {
+        if (variant.isActive === false) {
+          return;
+        }
+
+        const colorName = variant.color?.name ?? 'Sin color';
+        const sizeName = variant.size?.name ?? 'Sin talla';
+        const sku = variant.sku;
+
+        options.push({
+          variantId: variant.id,
+          sku,
+          productName: product.name,
+          colorName,
+          sizeName,
+          label: `${product.name} • ${colorName} / ${sizeName} • ${sku}`,
+        });
+      });
+    });
+
+    return options.sort((a, b) => a.label.localeCompare(b.label));
+  });
+
+  filteredVariantCatalog = computed<InventoryVariantOption[]>(() => {
+    const search = this.movementVariantSearch().trim().toLowerCase();
+    if (!search) {
+      return this.variantCatalog();
+    }
+
+    return this.variantCatalog().filter((variant) =>
+      variant.sku.toLowerCase().includes(search) ||
+      variant.productName.toLowerCase().includes(search) ||
+      variant.colorName.toLowerCase().includes(search) ||
+      variant.sizeName.toLowerCase().includes(search)
+    );
+  });
+
+  selectedMovementVariant = computed<InventoryVariantOption | null>(() => {
+    const selectedVariantId = this.movementVariantId();
+    if (!selectedVariantId) {
+      return null;
+    }
+
+    return this.variantCatalog().find((variant) => variant.variantId === selectedVariantId) ?? null;
+  });
+
   ListaInventarios = computed(() => this.getFilteredInventories());
 
   get filteredCount() {
@@ -82,7 +145,7 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   }
 
   get canSaveMovement() {
-    return !!this.selectedInventory() && this.movementQuantity() > 0 && !this.creatingMovement();
+    return !!this.movementStoreId() && !!this.movementVariantId() && this.movementQuantity() > 0 && !this.creatingMovement();
   }
 
   get movementDrawerTitle() {
@@ -149,6 +212,7 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadInventories();
     this.loadStoreOptions();
+    this.loadProductCatalog();
     this.loadMovements();
     this.searchSubject.pipe(debounceTime(400)).subscribe((param) => {
       this.searchParam.set(param);
@@ -195,9 +259,38 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private loadProductCatalog() {
+    this.productService.getProducts({ skip: 1, take: 500 }).subscribe({
+      next: (response) => {
+        this.productCatalog.set(response?.data ?? []);
+      },
+      error: (error: unknown) => {
+        console.error('Error al cargar catálogo de productos:', error);
+        this.alertService.show('Error al cargar variantes de productos', 'error', 3000);
+      }
+    });
+  }
+
   openMovementDrawer(inventory: Inventory, type: 'IN' | 'OUT' | 'ADJUSTMENT') {
     this.blurActiveElement();
     this.selectedInventory.set(inventory);
+    this.movementStoreId.set(inventory.store.id);
+    this.movementVariantId.set(inventory.variant.id);
+    this.movementVariantSearch.set('');
+    this.movementType.set(type);
+    this.movementQuantity.set(0);
+    this.movementNote.set('');
+    this.movementErrorMessage.set('');
+    this.historyMode.set(false);
+    this.movementDrawerOpen.set(true);
+  }
+
+  openManualMovementDrawer(type: 'IN' | 'OUT' | 'ADJUSTMENT' = 'IN') {
+    this.blurActiveElement();
+    this.selectedInventory.set(null);
+    this.movementStoreId.set(this.selectedStoreId() || null);
+    this.movementVariantId.set(null);
+    this.movementVariantSearch.set('');
     this.movementType.set(type);
     this.movementQuantity.set(0);
     this.movementNote.set('');
@@ -233,14 +326,19 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
   closeMovementDrawer() {
     this.movementDrawerOpen.set(false);
     this.selectedInventory.set(null);
+    this.movementStoreId.set(null);
+    this.movementVariantId.set(null);
+    this.movementVariantSearch.set('');
     this.historyMode.set(false);
     this.movementErrorMessage.set('');
   }
 
   saveMovement() {
-    const inventory = this.selectedInventory();
-    if (!inventory || this.movementQuantity() <= 0) {
-      this.alertService.show('Selecciona un inventario y una cantidad válida', 'warning', 3000);
+    const storeId = this.movementStoreId();
+    const variantId = this.movementVariantId();
+
+    if (!storeId || !variantId || this.movementQuantity() <= 0) {
+      this.alertService.show('Selecciona tienda, variante y una cantidad valida', 'warning', 3000);
       return;
     }
 
@@ -248,8 +346,8 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     this.creatingMovement.set(true);
 
     this.inventoryService.createMovement({
-      storeId: inventory.store.id,
-      variantId: inventory.variant.id,
+      storeId,
+      variantId,
       quantity: this.movementQuantity(),
       type: this.movementType(),
       note: this.movementNote() || undefined,
@@ -278,8 +376,10 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     this.movementNote.set('');
     this.movementType.set('IN');
     this.selectedInventory.set(null);
+    this.movementStoreId.set(null);
+    this.movementVariantId.set(null);
+    this.movementVariantSearch.set('');
   }
-
   private getErrorMessage(error: unknown, fallback: string) {
     if (error instanceof HttpErrorResponse) {
       return error.error?.message || error.message || fallback;
@@ -293,7 +393,21 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
 
   setStoreId(value: string) {
     const id = Number(value);
-    this.selectedStoreId.set(Number.isFinite(id) ? id : null);
+    this.selectedStoreId.set(Number.isFinite(id) && id > 0 ? id : null);
+  }
+
+  setMovementStoreId(value: string) {
+    const id = Number(value);
+    this.movementStoreId.set(Number.isFinite(id) && id > 0 ? id : null);
+  }
+
+  setMovementVariantId(value: string) {
+    const id = Number(value);
+    this.movementVariantId.set(Number.isFinite(id) && id > 0 ? id : null);
+  }
+
+  setMovementVariantSearch(value: string) {
+    this.movementVariantSearch.set(value);
   }
 
   setMovementType(value: string) {
@@ -330,12 +444,12 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
 
   setProductId(value: string) {
     const id = Number(value);
-    this.selectedProductId.set(Number.isFinite(id) ? id : null);
+    this.selectedProductId.set(Number.isFinite(id) && id > 0 ? id : null);
   }
 
   setSizeId(value: string) {
     const id = Number(value);
-    this.selectedSizeId.set(Number.isFinite(id) ? id : null);
+    this.selectedSizeId.set(Number.isFinite(id) && id > 0 ? id : null);
   }
 
   setSkuFilter(value: string) {
@@ -353,7 +467,7 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
 
   setColorId(value: string) {
     const id = Number(value);
-    this.selectedColorId.set(Number.isFinite(id) ? id : null);
+    this.selectedColorId.set(Number.isFinite(id) && id > 0 ? id : null);
   }
 
   resetFilters() {
@@ -373,3 +487,4 @@ export class InventoryAdminPageComponent implements OnInit, OnDestroy {
     return item.stock - item.reservedStock;
   }
 }
+
