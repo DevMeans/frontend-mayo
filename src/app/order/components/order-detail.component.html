@@ -1,0 +1,235 @@
+@if (loading) {
+  <div class="loading">Cargando pedido...</div>
+}
+
+@if (!loading && order) {
+  <div class="order-detail-container">
+    <div class="order-header">
+      <div class="header-left">
+        <h1>{{ order.code }}</h1>
+        <p class="client-info">{{ order.clientName || "Cliente" }} - {{ order.clientEmail || "" }}</p>
+      </div>
+      <div class="header-right">
+        <button (click)="goBack()" class="btn-back">&larr; Volver</button>
+      </div>
+    </div>
+
+    <div class="order-grid">
+      <div class="card">
+        <h3>Estado Actual</h3>
+        <div class="status-badge" [style.backgroundColor]="getStatusColor(order.status)">
+          {{ getStatusLabel(order.status) }}
+        </div>
+        <div class="status-transitions">
+          <p>Transiciones disponibles:</p>
+          @if (getNextStates().length > 0) {
+            <div class="transitions-list">
+              @for (state of getNextStates(); track state) {
+                <button (click)="openStatusModal()" class="btn-transition">
+                  &rarr; {{ getStatusLabel(state) }}
+                </button>
+              }
+            </div>
+          }
+          @if (getNextStates().length === 0) {
+            <p class="no-transitions">Sin transiciones disponibles</p>
+          }
+        </div>
+        <button (click)="openStatusModal()" class="btn-action btn-primary" [disabled]="getNextStates().length === 0">
+          Cambiar Estado
+        </button>
+      </div>
+
+      <div class="card">
+        <h3>Informacion del Pedido</h3>
+        <div class="info-row">
+          <label>Codigo:</label>
+          <span>{{ order.code }}</span>
+        </div>
+        <div class="info-row">
+          <label>Subtotal:</label>
+          <span>${{ order.subtotal | number: "1.2-2" }}</span>
+        </div>
+        <div class="info-row">
+          <label>Impuesto (21%):</label>
+          <span>${{ order.tax | number: "1.2-2" }}</span>
+        </div>
+        <div class="info-row total">
+          <label>Total:</label>
+          <span>${{ order.total | number: "1.2-2" }}</span>
+        </div>
+        <div class="info-row">
+          <label>Fecha:</label>
+          <span>{{ order.createdAt | date: "short" }}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Responsables Operativos</h3>
+        <div class="responsibles">
+          <div class="responsible">
+            <label>Vendedor:</label>
+            <span>{{ order.sellerUser?.firstName }} {{ order.sellerUser?.lastName || "No asignado" }}</span>
+          </div>
+          <div class="responsible">
+            <label>Picker:</label>
+            <span>{{ order.pickerUser?.firstName }} {{ order.pickerUser?.lastName || "No asignado" }}</span>
+          </div>
+          <div class="responsible">
+            <label>Despachador:</label>
+            <span>{{ order.dispenserUser?.firstName }} {{ order.dispenserUser?.lastName || "No asignado" }}</span>
+          </div>
+        </div>
+        <button (click)="openAssignModal()" class="btn-action btn-secondary">
+          Asignar Responsable
+        </button>
+      </div>
+
+      <div class="card">
+        <h3>Ubicaciones</h3>
+        <div class="locations">
+          <div class="location">
+            <label>Tienda Origen:</label>
+            <span>{{ order.sourceStore?.name || "N/A" }}</span>
+          </div>
+          <div class="location">
+            <label>Tienda Fulfillment:</label>
+            <span>{{ order.fulfillmentStore?.name || "N/A" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card items-section">
+      <h3>Productos en el Pedido</h3>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Variante</th>
+            <th>Cantidad</th>
+            <th>Precio Unit.</th>
+            <th>Subtotal</th>
+            <th>Estado Pick</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of order.items; track item.id ?? item.variantId ?? $index) {
+            <tr>
+              <td>{{ item.variant?.product?.name }}</td>
+              <td>
+                {{ item.variant?.color?.name }} - {{ item.variant?.size?.name }}
+              </td>
+              <td>{{ item.quantity }}</td>
+              <td>${{ item.unitPrice | number: "1.2-2" }}</td>
+              <td>${{ item.subtotal | number: "1.2-2" }}</td>
+              <td>
+                <span class="badge" [class.picked]="item.pickedQuantity === item.quantity">
+                  {{ item.pickedQuantity || 0 }}/{{ item.quantity }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="action-buttons">
+      @if (order.status === "READY") {
+        <button
+          (click)="openDeliverModal()"
+          class="btn-action btn-success"
+        >
+          Entregar Pedido
+        </button>
+      }
+    </div>
+
+    @if (showStatusModal) {
+      <div class="modal-overlay" (click)="showStatusModal = false">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <h3>Cambiar Estado del Pedido</h3>
+          <form [formGroup]="statusForm">
+            <div class="form-group">
+              <label>Nuevo Estado</label>
+              <select formControlName="status" class="form-input">
+                @for (state of getNextStates(); track state) {
+                  <option [value]="state">
+                    {{ getStatusLabel(state) }}
+                  </option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nota (Opcional)</label>
+              <textarea formControlName="note" class="form-input" rows="3"></textarea>
+            </div>
+            <div class="modal-buttons">
+              <button type="button" (click)="submitStatusChange()" class="btn-submit">
+                Confirmar
+              </button>
+              <button type="button" (click)="showStatusModal = false" class="btn-cancel">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+
+    @if (showAssignModal) {
+      <div class="modal-overlay" (click)="showAssignModal = false">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <h3>Asignar Responsable</h3>
+          <form [formGroup]="assignForm">
+            <div class="form-group">
+              <label>Rol</label>
+              <select formControlName="roleType" class="form-input">
+                <option value="">Seleccionar rol</option>
+                <option value="SELLER">Vendedor</option>
+                <option value="PICKER">Picker</option>
+                <option value="DISPENSER">Despachador</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Usuario</label>
+              <select formControlName="userId" class="form-input">
+                <option value="">Seleccionar usuario</option>
+                @for (user of users; track user.id) {
+                  <option [value]="user.id">
+                    {{ user.firstName }} {{ user.lastName }}
+                  </option>
+                }
+              </select>
+            </div>
+            <div class="modal-buttons">
+              <button type="button" (click)="submitAssign()" class="btn-submit">
+                Asignar
+              </button>
+              <button type="button" (click)="showAssignModal = false" class="btn-cancel">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+
+    @if (showDeliverModal) {
+      <div class="modal-overlay" (click)="showDeliverModal = false">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <h3>Confirmar Entrega</h3>
+          <p>Deseas marcar este pedido como entregado? No se puede deshacer esta accion.</p>
+          <div class="modal-buttons">
+            <button (click)="submitDeliver()" class="btn-submit">
+              Confirmar Entrega
+            </button>
+            <button (click)="showDeliverModal = false" class="btn-cancel">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,115 @@
+<div class="orders-container">
+  <div class="orders-header">
+    <h1>Gestion de ordenes</h1>
+    <p>Visualiza y gestiona todos los pedidos del sistema.</p>
+  </div>
+
+  <div class="filters-section">
+    <form [formGroup]="filterForm" class="filters-grid" (ngSubmit)="applyFilters()">
+      <div class="filter-group">
+        <label for="statusFilter">Estado</label>
+        <select id="statusFilter" formControlName="status" class="filter-input select select-bordered w-full">
+          @for (status of statusOptions; track status.value) {
+            <option [value]="status.value">{{ status.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="storeFilter">Tienda</label>
+        <select id="storeFilter" formControlName="storeId" class="filter-input select select-bordered w-full">
+          <option value="">Todas las tiendas</option>
+          @for (store of stores; track store.id) {
+            <option [value]="store.id">{{ store.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="fromDate">Desde</label>
+        <input id="fromDate" type="date" formControlName="startDate" class="filter-input input input-bordered w-full" />
+      </div>
+
+      <div class="filter-group">
+        <label for="toDate">Hasta</label>
+        <input id="toDate" type="date" formControlName="endDate" class="filter-input input input-bordered w-full" />
+      </div>
+
+      <div class="filter-buttons">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        <button type="button" (click)="clearFilters()" class="btn btn-outline">Limpiar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-section">
+    @if (loading) {
+      <div class="loading">Cargando ordenes...</div>
+    }
+
+    @if (!loading && loadError) {
+      <div class="no-data">
+        {{ loadError }}
+      </div>
+    }
+
+    @if (!loading && !loadError && orders.length === 0) {
+      <div class="no-data">
+        No hay ordenes para los filtros aplicados.
+      </div>
+    }
+
+    @if (!loading && !loadError && orders.length > 0) {
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Cliente</th>
+            <th>Estado</th>
+            <th>Tienda</th>
+            <th>Total</th>
+            <th>Creado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of orders; track order.id ?? order.code ?? $index) {
+            <tr class="order-row">
+              <td class="code"><strong>{{ order.code }}</strong></td>
+              <td>{{ order.clientName || order.clientEmail || "Sin cliente" }}</td>
+              <td>
+                <span class="status-badge" [style.backgroundColor]="getStatusColor(order.status)">
+                  {{ getStatusLabel(order.status) }}
+                </span>
+              </td>
+              <td>{{ order.sourceStore?.name || "-" }}</td>
+              <td class="total">S/ {{ order.total | number: "1.2-2" }}</td>
+              <td class="date">{{ order.createdAt | date: "short" }}</td>
+              <td class="actions">
+                <button type="button" (click)="viewOrderDetail(order)" class="btn-detail" title="Ver detalles">
+                  Ver
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  @if (!loading && !loadError && orders.length > 0) {
+    <div class="pagination">
+      <button type="button" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" class="pagination-btn">
+        Anterior
+      </button>
+
+      <div class="pagination-info">
+        Pagina {{ currentPage }} de {{ totalPages }} ({{ totalOrders }} ordenes)
+      </div>
+
+      <button type="button" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" class="pagination-btn">
+        Siguiente
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,155 @@
+<div class="picking-board-container">
+  <div class="picking-header">
+    <h1>Tablero de Picking</h1>
+    <p>Gestion de preparacion de pedidos</p>
+  </div>
+
+  <div class="picking-layout">
+    <div class="orders-list-section">
+      <div class="filters">
+        <form [formGroup]="filterForm" (change)="onFilterChange()">
+          <select formControlName="status" class="filter-select">
+            <option value="CONFIRMED">Confirmados</option>
+            <option value="PREPARING">En Preparacion</option>
+            <option value="">Todos</option>
+          </select>
+        </form>
+      </div>
+
+      @if (loading) {
+        <div class="loading">Cargando pedidos...</div>
+      }
+
+      @if (!loading && orders.length === 0) {
+        <div class="no-orders">
+          No hay pedidos para preparar
+        </div>
+      }
+
+      @if (!loading && orders.length > 0) {
+        <div class="orders-queue">
+          @for (order of orders; track order.id ?? order.code ?? $index) {
+            <div
+              (click)="selectOrder(order)"
+              [class.selected]="selectedOrder?.id === order.id"
+              class="order-card"
+            >
+              <div class="order-header-card">
+                <div class="order-code">{{ order.code }}</div>
+                <div class="order-status" [style.backgroundColor]="getStatusColor(order.status)">
+                  {{ getStatusLabel(order.status) }}
+                </div>
+              </div>
+              <div class="order-client">{{ order.clientName || "Cliente" }}</div>
+              <div class="order-items-count">{{ order.items?.length || 0 }} productos</div>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="getPickingProgress(order)"></div>
+              </div>
+              <div class="progress-text">{{ getPickingProgress(order) }}% completado</div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="picking-detail-section">
+      @if (!selectedOrder) {
+        <div class="no-selection">
+          <p>Selecciona un pedido para comenzar el picking</p>
+        </div>
+      }
+
+      @if (selectedOrder) {
+        <div class="picking-detail">
+          <div class="detail-header">
+            <h2>{{ selectedOrder.code }}</h2>
+            <button (click)="clearSelection()" class="btn-clear">X</button>
+          </div>
+
+          <div class="order-summary">
+            <div class="summary-item">
+              <label>Cliente:</label>
+              <span>{{ selectedOrder.clientName || "Cliente" }}</span>
+            </div>
+            <div class="summary-item">
+              <label>Telefono:</label>
+              <span>{{ selectedOrder.clientPhone || "N/A" }}</span>
+            </div>
+            <div class="summary-item">
+              <label>Email:</label>
+              <span>{{ selectedOrder.clientEmail || "N/A" }}</span>
+            </div>
+          </div>
+
+          <div class="overall-progress">
+            <h3>Progreso General</h3>
+            <div class="progress-bar-large">
+              <div class="progress-fill" [style.width.%]="getPickingProgress(selectedOrder)"></div>
+            </div>
+            <p class="progress-text-large">{{ getPickingProgress(selectedOrder) }}% completado</p>
+          </div>
+
+          <div class="items-to-pick">
+            <h3>Productos a Preparar</h3>
+            <table class="picking-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Variante</th>
+                  <th>Cantidad</th>
+                  <th>Separado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of selectedOrder.items; track item.id ?? item.variantId ?? $index) {
+                  <tr [class.completed]="item.pickedQuantity === item.quantity">
+                    <td>{{ item.variant?.product?.name }}</td>
+                    <td>{{ item.variant?.color?.name }} - {{ item.variant?.size?.name }}</td>
+                    <td class="quantity">{{ item.quantity }}</td>
+                    <td class="progress-cell">
+                      <div class="progress-badge">
+                        <span class="picked">{{ item.pickedQuantity || 0 }}</span>
+                        <span class="separator">/</span>
+                        <span class="total">{{ item.quantity }}</span>
+                      </div>
+                      <div class="item-progress-bar">
+                        <div class="item-progress-fill" [style.width.%]="getItemProgress(item)"></div>
+                      </div>
+                    </td>
+                    <td class="actions">
+                      <button (click)="markItemUnpicked(item)" class="btn-minus" [disabled]="!item.pickedQuantity">
+                        -
+                      </button>
+                      <span class="counter">{{ item.pickedQuantity || 0 }}</span>
+                      <button (click)="markItemPicked(item)" class="btn-plus" [disabled]="item.pickedQuantity === item.quantity">
+                        +
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (getPickingProgress(selectedOrder) === 100) {
+            <div class="complete-section">
+              <div class="completion-message">Todos los productos han sido separados</div>
+              <button (click)="completeOrder()" class="btn-complete-order">
+                Marcar como READY
+              </button>
+            </div>
+          }
+
+          @if (getPickingProgress(selectedOrder) < 100) {
+            <div class="incomplete-section">
+              <p class="warning">
+                Completa la separacion de todos los productos para marcar el pedido como listo
+              </p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

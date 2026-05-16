@@ -35,6 +35,10 @@ export const adminDashboardRoute: Routes = [
         loadComponent: () => import('./pages/user-management/user-management').then(m => m.UserManagementComponent)
       },
       {
+        path: 'orders',
+        loadChildren: () => import('../order/order.routes').then(m => m.orderRoutes)
+      },
+      {
         path: '**',
         redirectTo: 'category'
       }

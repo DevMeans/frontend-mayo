@@ -13,7 +13,9 @@ import {
 } from '../../../product/interfaces/product.interface';
 import { ProductService } from '../../../product/services/product.service';
 
-interface ProductVariantForm extends ProductVariant {
+interface ProductVariantForm extends Omit<ProductVariant, 'id' | 'sku'> {
+  id?: number;
+  sku?: string;
   imageFile?: File;
   imagePreview?: string;
 }

@@ -26,10 +26,17 @@ export interface Product {
 }
 
 export interface ProductVariant {
+  id: number;
+  productId?: number;
   colorId: number;
   sizeId: number;
+  sku: string;
+  barcode?: string | null;
   price: number;
   imageUrl?: string | null;
+  isActive?: boolean;
+  color?: Pick<Color, 'id' | 'name' | 'hex'>;
+  size?: Pick<Size, 'id' | 'name'>;
 }
 
 export interface ProductCreateRequest {

@@ -1,0 +1,407 @@
+<div class="pos-wrapper">
+  <section class="pos-catalog">
+    <header class="pos-store-header">
+      <div>
+        <h1>Punto de venta</h1>
+        <span class="online-status">Conectado</span>
+      </div>
+      <div class="header-actions">
+        <a class="history-link" routerLink="/admin/orders/list">Gestion de ordenes</a>
+        <button type="button" class="history-link" (click)="toggleSalesHistory()">
+          Historial ({{ salesHistory.length }})
+        </button>
+      </div>
+    </header>
+
+    <div class="catalog-header">
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar por nombre, SKU, color o talla"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="filterProducts()"
+      />
+
+      <button type="button" class="scan-btn" aria-label="Escanear codigo">#</button>
+
+      <div class="store-selector">
+        <label for="sourceStore">Tienda</label>
+        <select
+          id="sourceStore"
+          class="store-select"
+          [(ngModel)]="selectedStoreId"
+          (ngModelChange)="onStoreChange()"
+        >
+          <option [ngValue]="null" disabled>Selecciona</option>
+          @for (store of stores; track store.id) {
+            <option [ngValue]="store.id">
+              {{ store.name }}
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="category-filters">
+      @for (category of categories; track category) {
+        <button
+          type="button"
+          class="category-btn"
+          [class.active]="selectedCategory === category"
+          (click)="filterByCategory(category)"
+        >
+          {{ category }}
+        </button>
+      }
+    </div>
+
+    <p class="products-info">
+      {{ filteredProducts.length }} producto(s) visible(s)
+    </p>
+
+    @if (filteredProducts.length > 0) {
+      <div class="products-grid">
+        @for (product of filteredProducts; track product.id ?? product.name) {
+          <button
+            type="button"
+            class="product-card"
+            (click)="openVariantSelector(product)"
+          >
+            <div class="product-image">
+              @if (product.imageUrl) {
+                <img [src]="product.imageUrl" [alt]="product.name" />
+              } @else {
+                <span class="no-image">Sin imagen</span>
+              }
+            </div>
+
+            <div class="product-details">
+              <h4>{{ product.name }}</h4>
+              <p class="sku">{{ product.variants[0]?.sku || "Sin SKU" }}</p>
+              <div class="product-badges">
+                <span class="badge badge-price">S/ {{ product.minPrice | number: "1.2-2" }}</span>
+                <span class="badge badge-stock">{{ getProductStockLabel(product) }}</span>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        No hay productos para los filtros aplicados.
+      </div>
+    }
+  </section>
+
+  <aside class="cart-panel">
+    <header class="cart-header">
+      <h2>Carrito</h2>
+      <button type="button" (click)="clearCart()" [disabled]="cart.length === 0">Vaciar</button>
+    </header>
+
+    @if (cart.length === 0) {
+      <div class="empty-cart">
+        Agrega productos para comenzar una venta.
+      </div>
+    }
+
+    @if (cart.length > 0) {
+      <div class="cart-items">
+        @for (item of cart; track item.variantId ?? item.productId ?? $index; let i = $index) {
+          <article class="cart-item">
+            <div class="item-image">
+              @if (item.imageUrl) {
+                <img [src]="item.imageUrl" [alt]="item.productName" />
+              } @else {
+                <span class="no-image">N/A</span>
+              }
+            </div>
+
+            <div class="item-details">
+              <h5>{{ item.productName }}</h5>
+              <p class="variant">{{ item.colorName }} / {{ item.sizeName }}</p>
+              <p class="price">S/ {{ item.price | number: "1.2-2" }}</p>
+            </div>
+
+            <div class="item-quantity">
+              <button type="button" (click)="updateQuantity(item, item.quantity - 1)">-</button>
+              <input
+                type="number"
+                min="1"
+                [max]="item.availableStock"
+                [ngModel]="item.quantity"
+                (ngModelChange)="updateQuantity(item, $event)"
+              />
+              <button type="button" (click)="updateQuantity(item, item.quantity + 1)">+</button>
+            </div>
+
+            <div class="item-subtotal">
+              <span>S/ {{ item.subtotal | number: "1.2-2" }}</span>
+              <button type="button" class="btn-remove" (click)="removeFromCart(i)">x</button>
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    <footer class="cart-summary">
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span>S/ {{ subtotal | number: "1.2-2" }}</span>
+      </div>
+      <div class="summary-row">
+        <span>IGV (18%)</span>
+        <span>S/ {{ tax | number: "1.2-2" }}</span>
+      </div>
+      <div class="summary-row total">
+        <span>Total</span>
+        <span>S/ {{ total | number: "1.2-2" }}</span>
+      </div>
+
+      <button type="button" class="btn-checkout" (click)="openPaymentDrawer()" [disabled]="cart.length === 0 || loading">
+        Cobrar
+        <kbd>F9</kbd>
+      </button>
+      <button type="button" class="btn-save-order" (click)="submitOrder()" [disabled]="cart.length === 0 || loading">
+        Revisar pago
+      </button>
+      <button type="button" class="btn-clear" (click)="clearCart()" [disabled]="cart.length === 0">
+        Limpiar carrito
+      </button>
+    </footer>
+  </aside>
+</div>
+
+@if (toast; as currentToast) {
+  <div class="pos-toast" [class.toast-success]="currentToast.type === 'success'" [class.toast-error]="currentToast.type === 'error'" [class.toast-info]="currentToast.type === 'info'">
+    {{ currentToast.message }}
+  </div>
+}
+
+@if (showVariantSelector) {
+  <div class="drawer-overlay" (click)="closeVariantSelector()">
+    <section class="drawer-content" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <header class="drawer-header">
+        <h3>Seleccionar variante</h3>
+        <button type="button" class="close-btn" (click)="closeVariantSelector()">&times;</button>
+      </header>
+
+      @if (selectedProductForVariant; as product) {
+        <div class="drawer-body">
+          <div class="drawer-product-head">
+            <div>
+              <h4>{{ product.name }}</h4>
+              <p class="sku">{{ selectedVariant?.sku || product.variants[0]?.sku || "Sin SKU" }}</p>
+            </div>
+            <div class="drawer-price">
+              <span>Precio</span>
+              <strong>S/ {{ (selectedVariant?.price || product.minPrice) | number: "1.2-2" }}</strong>
+            </div>
+          </div>
+
+          <div class="variant-image">
+            @if (selectedVariant?.imageUrl || product.imageUrl) {
+              <img
+                [src]="selectedVariant?.imageUrl || product.imageUrl || ''"
+                [alt]="product.name"
+              />
+            } @else {
+              <span class="no-image">Sin imagen</span>
+            }
+          </div>
+
+          <div class="variant-section">
+            <label>Color</label>
+            <div class="color-selector">
+              @for (color of getUniqueColors(product); track color.name) {
+                <button
+                  type="button"
+                  class="color-btn"
+                  [class.active]="selectedColor === color.name"
+                  (click)="selectColor(color.name)"
+                >
+                  <i [style.background]="color.hex || '#cbd5e1'"></i>
+                  <span>{{ color.name }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="variant-section">
+            <label>Talla</label>
+            <div class="size-selector">
+              @for (variant of getSizesForSelectedColor(product); track variant.id ?? variant.sizeName) {
+                <button
+                  type="button"
+                  class="size-btn"
+                  [class.active]="selectedSize === variant.sizeName"
+                  [disabled]="variant.availableStock === 0"
+                  (click)="selectSize(variant.sizeName)"
+                >
+                  {{ variant.sizeName }}
+                  <small>{{ variant.availableStock }} disp.</small>
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (selectedVariant; as variant) {
+            <div class="selected-variant-summary">
+              <span>{{ variant.sku }}</span>
+              <span>{{ variant.colorName }} / {{ variant.sizeName }}</span>
+              <strong>S/ {{ variant.price | number: "1.2-2" }}</strong>
+            </div>
+          }
+
+          @if (selectedVariant; as variant) {
+            <div class="stock-info">
+              <p>Stock disponible: {{ variant.availableStock }} | Reservado: {{ variant.reservedStock }}</p>
+            </div>
+          }
+
+          <div class="variant-section">
+            <label for="variantQuantity">Cantidad</label>
+            <div class="quantity-selector">
+              <button type="button" (click)="setVariantQuantity(variantQuantity - 1)">-</button>
+              <input
+                id="variantQuantity"
+                type="number"
+                min="1"
+                [max]="selectedVariant?.availableStock || 1"
+                [ngModel]="variantQuantity"
+                (ngModelChange)="setVariantQuantity($event)"
+              />
+              <button type="button" (click)="setVariantQuantity(variantQuantity + 1)">+</button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <footer class="drawer-footer">
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="addVariantToCart()"
+          [disabled]="!selectedVariant || selectedVariant.availableStock === 0"
+        >
+          Agregar al carrito
+        </button>
+        <button type="button" class="btn-secondary" (click)="closeVariantSelector()">Cancelar</button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (showPaymentDrawer) {
+  <div class="drawer-overlay" (click)="closePaymentDrawer()">
+    <section class="drawer-content" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <header class="drawer-header">
+        <h3>Cobrar venta</h3>
+        <button type="button" class="close-btn" (click)="closePaymentDrawer()">&times;</button>
+      </header>
+
+      <div class="drawer-body">
+        <form [formGroup]="orderForm" class="payment-form">
+          <div class="form-group">
+            <label for="clientName">Cliente</label>
+            <input id="clientName" class="form-input" type="text" formControlName="clientName" placeholder="Cliente POS" />
+          </div>
+          <div class="form-group">
+            <label for="clientPhone">Telefono</label>
+            <input id="clientPhone" class="form-input" type="text" formControlName="clientPhone" placeholder="Opcional" />
+          </div>
+          <div class="form-group">
+            <label for="note">Nota</label>
+            <input id="note" class="form-input" type="text" formControlName="note" placeholder="Referencia de venta" />
+          </div>
+        </form>
+
+        <div class="payment-methods">
+          @for (method of paymentMethods; track method) {
+            <button
+              type="button"
+              class="payment-btn"
+              [class.active]="selectedPaymentMethod === method"
+              (click)="selectPaymentMethod(method)"
+            >
+              {{ method }}
+            </button>
+          }
+        </div>
+
+        <form [formGroup]="paymentForm" class="payment-form">
+          <div class="form-group">
+            <label>Total a cobrar</label>
+            <div class="amount-display">S/ {{ total | number: "1.2-2" }}</div>
+          </div>
+
+          @if (selectedPaymentMethod === "Efectivo") {
+            <div class="form-group">
+              <label for="amountPaid">Monto pagado</label>
+              <input
+                id="amountPaid"
+                type="number"
+                min="0"
+                class="form-input"
+                formControlName="amountPaid"
+                (input)="calculateChange()"
+              />
+            </div>
+          }
+
+          <div class="form-group">
+            <label>Vuelto</label>
+            <div class="change-display">S/ {{ change | number: "1.2-2" }}</div>
+          </div>
+        </form>
+      </div>
+
+      <footer class="drawer-footer">
+        <button type="button" class="btn-primary" (click)="submitPayment()" [disabled]="loading">
+          {{ loading ? "Procesando..." : "Confirmar pago" }}
+        </button>
+        <button type="button" class="btn-secondary" (click)="closePaymentDrawer()">
+          Cancelar
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (showSalesHistory) {
+  <div class="modal-overlay" (click)="toggleSalesHistory()">
+    <section class="modal-content" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <h3>Historial de ventas</h3>
+        <button type="button" class="close-btn" (click)="toggleSalesHistory()">&times;</button>
+      </header>
+
+      <div class="modal-body">
+        @if (salesHistory.length > 0) {
+          <table class="sales-table">
+            <thead>
+              <tr>
+                <th>Codigo</th>
+                <th>Total</th>
+                <th>Metodo</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (sale of salesHistory; track sale.id ?? sale.code ?? $index) {
+                <tr>
+                  <td>{{ sale.code }}</td>
+                  <td><strong>S/ {{ sale.total | number: "1.2-2" }}</strong></td>
+                  <td>{{ sale.paymentMethod }}</td>
+                  <td>{{ sale.timestamp | date: "dd/MM/yyyy HH:mm" }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <div class="empty-state">Todavia no hay ventas registradas.</div>
+        }
+      </div>
+    </section>
+  </div>
+}

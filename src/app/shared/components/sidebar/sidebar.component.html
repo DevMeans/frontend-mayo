@@ -125,6 +125,72 @@
     </a>
   </li>
 
+  <!-- List item Crear Orden -->
+  <li>
+    <a routerLink="/admin/orders/pos" routerLinkActive="active" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Crear Orden">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        stroke-width="2"
+        fill="none"
+        stroke="currentColor"
+        class="my-1.5 inline-block size-4"
+      >
+        <path d="M4 7h16"></path>
+        <path d="M4 12h16"></path>
+        <path d="M4 17h16"></path>
+      </svg>
+      <span class="is-drawer-close:hidden">Crear Orden</span>
+    </a>
+  </li>
+
+  <!-- List item Gestion de Ordenes -->
+  <li>
+    <a routerLink="/admin/orders/list" routerLinkActive="active" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Gestion de Ordenes">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        stroke-width="2"
+        fill="none"
+        stroke="currentColor"
+        class="my-1.5 inline-block size-4"
+      >
+        <path d="M9 6h11"></path>
+        <path d="M9 12h11"></path>
+        <path d="M9 18h11"></path>
+        <path d="M3 6h.01"></path>
+        <path d="M3 12h.01"></path>
+        <path d="M3 18h.01"></path>
+      </svg>
+      <span class="is-drawer-close:hidden">Gestion de Ordenes</span>
+    </a>
+  </li>
+
+  <!-- List item Picking -->
+  <li>
+    <a routerLink="/admin/orders/picking" routerLinkActive="active" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Picking">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        stroke-width="2"
+        fill="none"
+        stroke="currentColor"
+        class="my-1.5 inline-block size-4"
+      >
+        <path d="M9 3H5a2 2 0 00-2 2v4m0 0a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2h-4m0 0V2a1 1 0 00-1-1h-2a1 1 0 00-1 1v1"></path>
+        <path d="M6 7h12"></path>
+        <path d="M9 11v8m0 0H7a2 2 0 00-2 2v2h12v-2a2 2 0 00-2-2h-2m0 0v-8"></path>
+      </svg>
+      <span class="is-drawer-close:hidden">Picking</span>
+    </a>
+  </li>
+
   <!-- List item Users (Admin only) -->
   @if (authService.isAdmin()) {
     <li>

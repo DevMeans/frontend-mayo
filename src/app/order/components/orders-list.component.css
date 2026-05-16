@@ -1,0 +1,206 @@
+:host {
+  --orders-bg: var(--color-base-200);
+  --orders-surface: var(--color-base-100);
+  --orders-surface-soft: color-mix(in oklab, var(--color-base-200) 72%, var(--color-base-100));
+  --orders-border: var(--color-base-300);
+  --orders-text: var(--color-base-content);
+  --orders-muted: color-mix(in oklab, var(--color-base-content) 58%, transparent);
+  --orders-primary: var(--color-primary);
+  --orders-primary-content: var(--color-primary-content);
+  --orders-success: var(--color-success);
+}
+
+.orders-container {
+  padding: 1.25rem;
+  min-height: calc(100vh - 9rem);
+  background: var(--orders-bg);
+  color: var(--orders-text);
+}
+
+.orders-header {
+  margin-bottom: 1rem;
+}
+
+.orders-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--orders-text);
+}
+
+.orders-header p {
+  margin: 0.25rem 0 0;
+  color: var(--orders-muted);
+}
+
+.filters-section,
+.table-section {
+  background: var(--orders-surface);
+  border: 1px solid var(--orders-border);
+  border-radius: 12px;
+}
+
+.filters-section {
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filters-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.filter-group label {
+  color: var(--orders-text);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.filter-input {
+  min-height: 2.5rem;
+}
+
+.filter-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--orders-primary) 22%, transparent) !important;
+}
+
+.filter-input.select,
+.filter-input.input {
+  background: var(--orders-surface-soft) !important;
+  color: var(--orders-text) !important;
+  border-color: var(--orders-border) !important;
+}
+
+.filter-input.select option {
+  background: var(--orders-surface);
+  color: var(--orders-text);
+}
+
+.filter-buttons {
+  display: flex;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.table-section {
+  overflow: hidden;
+}
+
+.loading,
+.no-data {
+  padding: 1.2rem;
+  text-align: center;
+  color: var(--orders-muted);
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orders-table thead {
+  background: var(--orders-surface-soft);
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 0.8rem;
+  border-bottom: 1px solid var(--orders-border);
+  text-align: left;
+  color: var(--orders-text);
+}
+
+.orders-table th {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.order-row:hover {
+  background: color-mix(in oklab, var(--orders-primary) 7%, var(--orders-surface));
+}
+
+.code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+}
+
+.total {
+  color: var(--orders-success);
+  font-weight: 700;
+}
+
+.date {
+  color: var(--orders-muted);
+  font-size: 0.85rem;
+}
+
+.actions {
+  text-align: center;
+}
+
+.btn-detail {
+  background: transparent;
+  color: var(--orders-primary);
+  border: 1px solid var(--orders-primary);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.pagination-btn {
+  min-height: 36px;
+  border: 1px solid var(--orders-border);
+  border-radius: 8px;
+  background: var(--orders-surface);
+  color: var(--orders-text);
+  padding: 0 0.8rem;
+  cursor: pointer;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--orders-primary);
+}
+
+.pagination-info {
+  color: var(--orders-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .orders-table {
+    font-size: 0.85rem;
+  }
+}

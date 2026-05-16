@@ -6,7 +6,10 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:pos": "vitest run --environment jsdom src/app/order/components/pos.component.pos-flow.spec.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:pos": "playwright test e2e/pos-payment.e2e.spec.ts"
   },
   "prettier": {
     "printWidth": 100,
@@ -40,6 +43,7 @@
     "@angular/build": "^21.1.4",
     "@angular/cli": "^21.1.4",
     "@angular/compiler-cli": "^21.1.0",
+    "@playwright/test": "^1.60.0",
     "jsdom": "^27.1.0",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"
